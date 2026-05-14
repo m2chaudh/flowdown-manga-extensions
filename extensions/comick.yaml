@@ -1,0 +1,111 @@
+id: comick
+name: Comick
+version: 1.0.0
+api_version: 1
+homepage: https://comick.io
+image_referer: "https://comick.art"
+allowed_domains:
+  - comick.art
+  - cdn1.comicknew.pictures
+  - cdn2.comicknew.pictures
+default_language: en
+nsfw: optional
+description: Multi-language scanlation hub. Uses comick.art's plain-JSON API directly — no Cloudflare challenge, no browser session required.
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search the catalog by title. The API returns a flat array of hits under
+# `data`, each carrying enough metadata to render a card without needing a
+# follow-up `manga_details` fetch.
+search:
+  url: "https://comick.art/api/search?q={query}&limit=20"
+  response: json
+  items: "$.data[*]"
+  fields:
+    id: "$.slug"
+    title: "$.title"
+    description: "((item.description || item.parsed_description) || '').slice(0, 600)"
+    cover_url: "$.default_thumbnail"
+    status: "(function(){ const s = item.status; return s === 1 ? 'ongoing' : s === 2 ? 'completed' : s === 3 ? 'cancelled' : s === 4 ? 'hiatus' : null; })()"
+    authors: "null"
+
+# Comick has no dedicated manga-by-slug JSON endpoint, and the SPA page only
+# ships metadata inside an HTML <script> tag (which this runtime can't
+# extract — html response mode isn't implemented yet). Pragmatic workaround:
+# point manga_details at the cheapest guaranteed-200 JSON endpoint that
+# accepts the slug — the chapter-list — and pass the slug straight through
+# as the id. The frontend already has title/cover/description/status from
+# the search-time SearchHit, so emitting nulls here is fine; the runtime
+# falls back to the input id when our `id` field comes back empty.
+manga_details:
+  url: "https://comick.art/api/comics/{id}/chapter-list?limit=1"
+  response: json
+  fields:
+    id: "''"
+    title: "''"
+    description: "''"
+    cover_url: "null"
+    authors: "null"
+    status: "null"
+
+# Chapter list keyed by manga slug. We encode enough info into each
+# chapter id (`<slug>/<hid>-chapter-<chap>-<lang>`) that the page_list
+# fetch can reconstruct the canonical URL without re-resolving the slug.
+# The runtime URL-encodes `{id}` (slash → `%2F`), but comick.art's server
+# normalizes `%2F` back to `/` in the path — verified empirically.
+#
+# The slug isn't directly exposed to QuickJS here (the runtime only binds
+# item / response / prefs), so we recover it from the response itself:
+# `pagination.links[*].url` includes the originating request URL, and the
+# entry with active=true is the slug-bearing one we want.
+chapter_list:
+  url: "https://comick.art/api/comics/{id}/chapter-list?lang={prefs.preferred_language}&limit=99999"
+  response: json
+  items: "$.data[*]"
+  fields:
+    id: |
+      (function(){
+        const links = (response.pagination && response.pagination.links) || [];
+        const active = links.find(l => l && l.active && typeof l.url === 'string');
+        const m = active && active.url.match(/\/comics\/([^/]+)\/chapter-list/);
+        const slug = m ? m[1] : '';
+        return `${slug}/${item.hid}-chapter-${item.chap}-${item.lang}`;
+      })()
+    number: "$.chap"
+    title: "item.title || ''"
+    published_at: "(function(){ const t = item.publish_at || item.created_at || item.updated_at; return t ? ((new Date(t).getTime() / 1000) | 0) : null; })()"
+    scanlator: "(function(){ const g = item.group_name; return Array.isArray(g) ? g.join(', ') : (g || null); })()"
+
+# Fetch chapter pages. The composite chapter id encodes the manga slug,
+# the chapter hid, the chapter number, and the language. The runtime
+# percent-encodes the slash, and comick.art accepts the encoded form.
+page_list:
+  url: "https://comick.art/api/comics/{id}"
+  response: json
+  pages: |
+    (function(){
+      const imgs = (response.chapter && response.chapter.images) || [];
+      return imgs.map(i => i.url).filter(u => typeof u === 'string' && u.length > 0);
+    })()
+
+tests:
+  - kind: search
+    query: "one piece"
+    expect:
+      min_results: 1
+      first_title_contains: "One Piece"
+  - kind: chapter_list
+    fixture_id: "one-piece"
+    expect:
+      min_results: 10
+  - kind: page_list
+    fixture_id: "one-piece/OA80PpD-chapter-1182-en"
+    expect:
+      min_pages: 1
+      first_page_url_https: true
