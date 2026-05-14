@@ -1,0 +1,74 @@
+id: mangadex
+name: MangaDex
+version: 1.0.0
+api_version: 1
+homepage: https://mangadex.org
+allowed_domains:
+  - api.mangadex.org
+  - uploads.mangadex.org
+default_language: en
+nsfw: optional
+description: Open scanlation catalog, ~80k titles. Stable JSON API.
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+search:
+  url: "https://api.mangadex.org/manga?title={query}&limit=20&availableTranslatedLanguage[]={prefs.preferred_language}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art&includes[]=author"
+  response: json
+  items: "$.data[*]"
+  fields:
+    id: "$.id"
+    title: "item.attributes.title.en || Object.values(item.attributes.title)[0]"
+    description: "(item.attributes.description.en || Object.values(item.attributes.description)[0] || '').slice(0, 600)"
+    status: "$.attributes.status"
+    cover_url: "(function(){ const c = item.relationships.find(r => r.type === 'cover_art'); return c ? `https://uploads.mangadex.org/covers/${item.id}/${c.attributes.fileName}.256.jpg` : null; })()"
+    authors: "item.relationships.filter(r => r.type === 'author').map(a => a.attributes.name).join(', ')"
+
+manga_details:
+  url: "https://api.mangadex.org/manga/{id}?includes[]=cover_art&includes[]=author"
+  response: json
+  fields:
+    id: "$.data.id"
+    title: "response.data.attributes.title.en || Object.values(response.data.attributes.title)[0]"
+    description: "response.data.attributes.description.en || Object.values(response.data.attributes.description)[0] || ''"
+    status: "$.data.attributes.status"
+    cover_url: "(function(){ const c = response.data.relationships.find(r => r.type === 'cover_art'); return c ? `https://uploads.mangadex.org/covers/${response.data.id}/${c.attributes.fileName}` : null; })()"
+    authors: "response.data.relationships.filter(r => r.type === 'author').map(a => a.attributes.name).join(', ')"
+
+chapter_list:
+  url: "https://api.mangadex.org/manga/{id}/feed?translatedLanguage[]={prefs.preferred_language}&order[chapter]=desc&limit=500&includes[]=scanlation_group"
+  response: json
+  items: "$.data[*]"
+  fields:
+    id: "$.id"
+    number: "$.attributes.chapter"
+    title: "$.attributes.title"
+    published_at: "(new Date(item.attributes.publishAt).getTime() / 1000) | 0"
+    scanlator: "(function(){ const g = item.relationships.find(r => r.type === 'scanlation_group'); return g ? g.attributes.name : null; })()"
+
+page_list:
+  url: "https://api.mangadex.org/at-home/server/{id}"
+  response: json
+  pages: |
+    (function(){
+      const base = response.baseUrl;
+      const hash = response.chapter.hash;
+      return response.chapter.data.map(f => `${base}/data/${hash}/${f}`);
+    })()
+
+tests:
+  - kind: search
+    query: "one piece"
+    expect:
+      min_results: 5
+      first_title_contains: "One Piece"
+  - kind: chapter_list
+    fixture_id: "a96676e5-8ae2-425e-b549-7f15dd34a6d8"
+    expect:
+      min_results: 100
