@@ -1,0 +1,152 @@
+id: internet_archive
+name: Internet Archive
+version: 1.0.0
+api_version: 1
+homepage: https://archive.org
+image_referer: "https://archive.org"
+allowed_domains:
+  - archive.org
+default_language: en
+nsfw: optional
+description: |
+  Public-domain comics, scanlations, and user uploads from archive.org.
+  Each IA item is treated as a single-volume manga with one chapter (the
+  whole item). Quality and structure vary wildly across the catalog —
+  search is restricted to image-mediatype items in the manga / comics
+  collections to maximize the odds of reaching items whose pages are
+  exposed as individual JPEG/PNG files (rather than CBZ-packed, which
+  this extension cannot unpack).
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search the IA advancedsearch endpoint. We restrict to mediatype:image
+# AND the manga/comics-leaning collections because text-mediatype items
+# almost always package their pages as CBZ/RAR archives we can't unpack.
+# `files_count:[10 TO *]` filters out trivially small items (avatars,
+# single-image uploads). `access-restricted-item` is excluded because
+# borrow-locked items 403 on direct downloads.
+search:
+  url: "https://archive.org/advancedsearch.php?q=mediatype:image+AND+(collection:manga_library+OR+collection:comicbooks+OR+collection:comics+OR+collection:manga_unsorted+OR+collection:additional_collections)+AND+files_count:%5B10+TO+*%5D+AND+-access-restricted-item:true+AND+title:({query})&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=description&fl%5B%5D=files_count&output=json&rows=30"
+  response: json
+  items: "$.response.docs[*]"
+  fields:
+    id: "$.identifier"
+    title: |
+      (function(){
+        const t = item.title;
+        return Array.isArray(t) ? (t[0] || '') : (t || '');
+      })()
+    description: |
+      (function(){
+        const d = item.description;
+        const s = Array.isArray(d) ? (d[0] || '') : (d || '');
+        return (s || '').toString().replace(/<[^>]+>/g, '').slice(0, 600);
+      })()
+    cover_url: "`https://archive.org/services/img/${item.identifier}`"
+    authors: |
+      (function(){
+        const c = item.creator;
+        if (Array.isArray(c)) return c.filter(x => x).join(', ');
+        return c || null;
+      })()
+    status: "'completed'"
+
+# IA's metadata endpoint returns the full item document. We pull the
+# same shape as search through `response.metadata` so the frontend gets
+# title/description/cover even when the user lands on detail without
+# going through search first.
+manga_details:
+  url: "https://archive.org/metadata/{id}"
+  response: json
+  fields:
+    id: "$.metadata.identifier"
+    title: |
+      (function(){
+        const t = response.metadata && response.metadata.title;
+        return Array.isArray(t) ? (t[0] || '') : (t || '');
+      })()
+    description: |
+      (function(){
+        const d = response.metadata && response.metadata.description;
+        const s = Array.isArray(d) ? (d[0] || '') : (d || '');
+        return (s || '').toString().replace(/<[^>]+>/g, '').slice(0, 1200);
+      })()
+    cover_url: "`https://archive.org/services/img/${(response.metadata && response.metadata.identifier) || ''}`"
+    authors: |
+      (function(){
+        const c = response.metadata && response.metadata.creator;
+        if (Array.isArray(c)) return c.filter(x => x).join(', ');
+        return c || null;
+      })()
+    status: "'completed'"
+
+# An IA item is a single book/volume — there's no series-of-chapters
+# concept. We surface it as a synthetic single chapter. The items
+# selector `$.metadata` yields the one metadata object, which the
+# runtime iterates as a one-element list (jsonpath returns a Vec; a
+# single Value resolves to a Vec of length 1).
+chapter_list:
+  url: "https://archive.org/metadata/{id}"
+  response: json
+  items: "$.metadata"
+  fields:
+    id: "$.identifier"
+    number: "'1'"
+    title: |
+      (function(){
+        const t = item.title;
+        return Array.isArray(t) ? (t[0] || 'Volume') : (t || 'Volume');
+      })()
+    published_at: |
+      (function(){
+        const d = item.publicdate;
+        if (!d) return null;
+        const t = new Date(d.replace(' ', 'T') + 'Z').getTime();
+        return isFinite(t) ? ((t / 1000) | 0) : null;
+      })()
+    scanlator: "null"
+
+# Page list: filter the item's files[] to JPEG/PNG image entries that
+# look like sequential pages, drop thumbnails / private files. Use the
+# canonical `https://archive.org/download/<id>/<file>` form — it returns
+# a 302 to whichever CDN mirror is hot, which reqwest follows by default
+# inside the image proxy. Keeping a stable hostname here lets us declare
+# only `archive.org` in `allowed_domains`.
+page_list:
+  url: "https://archive.org/metadata/{id}"
+  response: json
+  pages: |
+    (function(){
+      const files = (response.files || []).filter(f => {
+        if (!f || typeof f.name !== 'string') return false;
+        if (f.private === 'true') return false;
+        const fmt = f.format;
+        if (fmt !== 'JPEG' && fmt !== 'PNG') return false;
+        if (/(^|\/)__ia_thumb\.|thumb\./i.test(f.name)) return false;
+        return true;
+      });
+      files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      const id = (response.metadata && response.metadata.identifier) || '';
+      return files.map(f => `https://archive.org/download/${encodeURIComponent(id)}/${f.name.split('/').map(encodeURIComponent).join('/')}`);
+    })()
+
+tests:
+  - kind: search
+    query: "manga"
+    expect:
+      min_results: 1
+  - kind: chapter_list
+    fixture_id: "gouketsuji2anthology"
+    expect:
+      min_results: 1
+  - kind: page_list
+    fixture_id: "gouketsuji2anthology"
+    expect:
+      min_pages: 10
+      first_page_url_https: true

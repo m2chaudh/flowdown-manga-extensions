@@ -26,6 +26,19 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/comick.yaml",
       "icon_url": "",
       "sha256": "c93313a45e6db3308e78ac000e33d201aa3148bfeddce9165d0e57b8b54d2988"
+    },
+    {
+      "id": "internet_archive",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Internet Archive",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Public-domain comics, scanlations, and user uploads from archive.org. Each IA item = one single-volume manga (no series grouping). Search is restricted to image-mediatype items with unpacked JPEG/PNG pages; items with CBZ-packed pages will show 0 readable pages.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/internet_archive.yaml",
+      "icon_url": "",
+      "sha256": "dec282718c7803712eaeac3eaa29e109bc68a2e3b1df6325bd9a690a33b72046"
     }
   ]
 }
