@@ -52,6 +52,19 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/webtoons.yaml",
       "icon_url": "",
       "sha256": "ef808cd54ddcac98f8a91892e756c0a5de7ffef2a70173737cb4d3b8eddcb6c8"
+    },
+    {
+      "id": "toonily",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Toonily",
+      "language": "en",
+      "nsfw": "always",
+      "description": "English manhwa aggregator (Korean comics). Large catalog with heavy adult content. Built on the Madara WordPress theme. Sits behind Cloudflare Turnstile — extension opts into needs_browser_session so the runtime warms a hidden WebView against toonily.com to acquire clearance cookies. Search and chapter list are inline on the manga page (no AJAX-only endpoints). The include_nsfw preference is a no-op here; Toonily's catalog cannot be cleanly filtered.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/toonily.yaml",
+      "icon_url": "",
+      "sha256": "f89777b46b32b55e54a0e7a4ac1ef56600a0915547994047099dbec6f2da04ff"
     }
   ]
 }
