@@ -39,6 +39,19 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/internet_archive.yaml",
       "icon_url": "",
       "sha256": "dec282718c7803712eaeac3eaa29e109bc68a2e3b1df6325bd9a690a33b72046"
+    },
+    {
+      "id": "webtoons",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Webtoons",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Official LINE Webtoons (Naver). Korean & American webcomics with English translations. Vertical-scroll format; one episode = one continuous strip rendered as multiple JPEG images. Cover and page CDN (webtoon-phinf.pstatic.net) is hotlink-protected, routed through manga-img:// to add the required Referer.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/webtoons.yaml",
+      "icon_url": "",
+      "sha256": "ef808cd54ddcac98f8a91892e756c0a5de7ffef2a70173737cb4d3b8eddcb6c8"
     }
   ]
 }

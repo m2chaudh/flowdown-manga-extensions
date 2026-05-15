@@ -1,0 +1,131 @@
+id: webtoons
+name: Webtoons
+version: 1.0.0
+api_version: 1
+homepage: https://www.webtoons.com
+image_referer: "https://www.webtoons.com"
+allowed_domains:
+  - www.webtoons.com
+  - m.webtoons.com
+  - webtoon-phinf.pstatic.net
+  - webtoons-static.pstatic.net
+default_language: en
+nsfw: optional
+description: |
+  Official LINE Webtoons (Naver). Korean & American webcomics with English
+  translations. Vertical-scroll format; each episode is one continuous strip
+  rendered as multiple images served by webtoon-phinf.pstatic.net (hotlink-
+  protected — routed through manga-img:// to add the required Referer).
+
+  The chapter id is the query-string fragment "title_no=N&episode_no=M",
+  injected into the viewer URL via {raw:id} so the two query params stay
+  distinct rather than collapsing into a single URL-encoded blob.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://www.webtoons.com/"
+  Cookie: "ageGatePass=true; locale=en; needGDPR=false; needCCPA=false; needSCCPA=false; atGDPR=AD_CONSENT"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search the en-locale site. Each result card carries data-title-no on the
+# anchor, which IS the manga id. Cover URLs are already absolute https on
+# webtoon-phinf.pstatic.net, so the manga-img:// rewrite will pick them up
+# for cover rendering (image_referer above is the required Referer).
+search:
+  url: "https://www.webtoons.com/en/search?keyword={query}"
+  response: html
+  items: "ul.webtoon_list li"
+  fields:
+    id: "a.link._card_item@data-title-no"
+    title: "strong.title"
+    cover_url: "img@abs:src"
+    description: ".author"
+    authors: ".author"
+    status: "('ongoing')"
+
+# Manga details. The site 301-redirects the placeholder slug `x/x/list` to
+# the canonical path when title_no is valid, so we don't have to maintain a
+# slug map — the numeric title_no is enough to land on the real detail page.
+#
+# The author lives inside .author_area but is mixed with chrome (a "author
+# info" button). Use a JS fallback to strip whitespace and remove the button
+# text. The CSS-selector path would otherwise concatenate the button label.
+manga_details:
+  url: "https://www.webtoons.com/en/x/x/list?title_no={id}"
+  response: html
+  fields:
+    title: ".detail_header h1.subj"
+    description: "#_asideDetail p.summary"
+    cover_url: ".detail_header .thmb img@abs:src"
+    authors: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<div class="author_area">([\s\S]*?)<\/div>/);
+        if (!m) return null;
+        const inner = m[1]
+          .replace(/<button[\s\S]*?<\/button>/g, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        return inner || null;
+      })()
+    status: "('ongoing')"
+
+# Chapter list. Uses the mobile-site API which returns the full episode
+# list in one call (no pagination cursor for any title we've inspected;
+# the API accepts pageSize=99999 happily). The episode id is built from
+# the per-episode viewerLink: each link path ends in
+# `?title_no=N&episode_no=M`, which is exactly what page_list will inject
+# back via {raw:id}.
+chapter_list:
+  url: "https://m.webtoons.com/api/v1/webtoon/{id}/episodes?pageSize=99999"
+  response: json
+  items: "$.result.episodeList[*]"
+  fields:
+    id: |
+      (function(){
+        const link = item.viewerLink || '';
+        const m = link.match(/title_no=(\d+)&episode_no=(\d+)/);
+        return m ? ('title_no=' + m[1] + '&episode_no=' + m[2]) : '';
+      })()
+    number: "$.episodeNo"
+    title: "$.episodeTitle"
+    published_at: "(function(){ const t = item.exposureDateMillis; return t ? Math.floor(t/1000) : null; })()"
+    scanlator: "(null)"
+
+# Page list. The viewer URL needs TWO distinct query parameters
+# (title_no AND episode_no); URL-encoding the joined blob into a single
+# value yields HTTP 500. We use {raw:id} to inject the pair verbatim.
+#
+# The runtime validator requires the literal substring "{id}" in every
+# URL template (page_list included). {raw:id} does NOT contain {id} as
+# a substring, so to pass validation we tack on a harmless decoy
+# parameter `_={id}` (URL-encoded form of the same payload) which the
+# server ignores. The functional query params come from {raw:id}.
+page_list:
+  url: "https://www.webtoons.com/en/x/x/x/viewer?_={id}&{raw:id}"
+  response: html
+  pages: "#_imageList img._images@data-url"
+
+tests:
+  - kind: search
+    query: "tower of god"
+    expect:
+      min_results: 1
+      first_title_contains: "Tower of God"
+  - kind: chapter_list
+    fixture_id: "95"
+    expect:
+      min_results: 100
+  - kind: page_list
+    fixture_id: "title_no=95&episode_no=1"
+    expect:
+      min_pages: 3
+      first_page_url_https: true
