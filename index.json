@@ -52,6 +52,19 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/webtoons.yaml",
       "icon_url": "",
       "sha256": "ef808cd54ddcac98f8a91892e756c0a5de7ffef2a70173737cb4d3b8eddcb6c8"
+    },
+    {
+      "id": "manhwa18",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Manhwa18",
+      "language": "en",
+      "nsfw": "always",
+      "description": "Explicit Korean manhwa aggregator. HTML-scraped from manhwa18.com. Mature content throughout; the include_nsfw preference is accepted but is a no-op (entire catalog is 18+). Chapter id is `<manga-slug>/<chapter-slug>` and is injected raw to preserve the slash through URL-encoding.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhwa18.yaml",
+      "icon_url": "",
+      "sha256": "da0bfbf57437e5e24cb81aaf884c722409b82230fb70896d89e3c7d3fb7a9058"
     }
   ]
 }
