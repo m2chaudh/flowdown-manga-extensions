@@ -36,6 +36,12 @@ extensions/<id>.yaml            extension source files
 
 `sha256` is optional. When present, FlowDown verifies the fetched YAML matches before installing or updating. Empty = skip.
 
+## Cloudflare-gated sources
+
+Extensions opting into `needs_browser_session: true` (i.e. sources that hide behind Cloudflare Turnstile, such as Toonily, Bato.to, MangaPark) require a headless-browser layer FlowDown doesn't currently ship. The YAML for these sources stays in `extensions/` (e.g. `extensions/toonily.yaml`) but is **not listed in `index.json`** — Browse registry won't surface them, and installing one directly via "Install from URL" will produce a clear "not supported" error at first fetch.
+
+Reviving CF-gated sources would need either a system-Chrome integration that survives the macOS-bundle launch (see git history of `src-tauri/src/manga/cf_bypass.rs` for prior attempts) or a `flaresolverr`-style sidecar.
+
 ## Contributing
 
 1. Add `extensions/<id>.yaml` matching the FlowDown extension schema (see `src-tauri/src/manga/extension.rs` in the main repo).
