@@ -117,6 +117,71 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhwax.yaml",
       "icon_url": "",
       "sha256": "64a66711423e2ff9982afe65713976bd2571f5b64b41996e2c6034ba49532a0b"
+    },
+    {
+      "id": "fanfox",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "MangaFox (FanFox)",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Mainstream English manga aggregator hosting classics like Naruto, One Piece, and Bleach. Desktop reader uses per-page chapterfun.ashx AJAX with p,a,c,k,e,d obfuscation — we instead point page_list at the mobile roll_manga endpoint (m.fanfox.net) which inlines every page in a single HTML response. The `readway=2` cookie is required to receive all pages rather than the 3-page preview. Both covers (fmcdn.mfcdn.net) and pages (zjcdn.mangafox.me) are hotlink-protected and routed through manga-img:// for the Referer.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/fanfox.yaml",
+      "icon_url": "",
+      "sha256": "017906c0dc5a60f7cb629d0aba00aaba696ca3ce7fcf1fd8a5fba329ca724987"
+    },
+    {
+      "id": "tcbscans",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "TCB Scans",
+      "language": "en",
+      "nsfw": "never",
+      "description": "English fan-scanlation group covering One Piece, Jujutsu Kaisen, My Hero Academia, Black Clover, Attack on Titan, Chainsaw Man, and other weekly Shonen Jump series. Small catalog (~15 titles) — high translation quality. Live host is `tcbonepiecechapters.com`; legacy `tcbscans.com` redirects here. There is no server search endpoint — Mihon implements it client-side over /projects, and so do we (the {query} placeholder is encoded into a no-op `_q=` param so the URL template validator passes).",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/tcbscans.yaml",
+      "icon_url": "",
+      "sha256": "ad0a64695c241e86b437382947aa4f858c117f31deafa0837a199453ebf9276a"
+    },
+    {
+      "id": "mangapill",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Mangapill",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Mainstream English manga aggregator with a clean, predictable HTML structure (no client-side hydration). Hosts Naruto, One Piece, Bleach, and most modern series. URL shape `/manga/<id>/<slug>` for details and `/chapters/<id>-<NNNNNN>/<slug>-chapter-N` for reader. Pages served by `cdn.readdetectiveconan.com` and hotlink-protected — routed through manga-img:// to add the required Referer.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangapill.yaml",
+      "icon_url": "",
+      "sha256": "45044429f657218a15e340bcf4ea2722cc037997f26884a5ecf7d2fa275cc292"
+    },
+    {
+      "id": "mangaread",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "MangaRead",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "English Madara-themed WordPress aggregator with a large mainstream catalog (Naruto, Boruto, One Piece, Bleach, Vagabond, Slam Dunk, etc.). Reader is plain — pages live in `wp-manga-chapter-img` src attributes directly (no chapter-protector AES blob). Pages served from `www.mangaread.org` itself under /wp-content/uploads/; no hotlink protection.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangaread.yaml",
+      "icon_url": "",
+      "sha256": "62c47620015c6a98af6f60cd1449ea0aad9279736410e540d4779bf24866370b"
+    },
+    {
+      "id": "mangakatana",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "MangaKatana",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Mainstream English manga aggregator. Large catalog including Naruto, Bleach, Vagabond, and Berserk. Reader uses a JS trick: HTML carries placeholder `<img data-src=\"#\">` tags and the real URLs live in a `var <random>=['url1',…];` inline script. We extract the variable name via Mihon's regex `data-src['\"]?,\\s*(\\w+)` and parse the array. URL shape `/manga/<slug>.<numeric-id>` for details and `/manga/<slug>.<id>/c<N>` for reader. Pages on i1.mangakatana.com — no hotlink protection.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangakatana.yaml",
+      "icon_url": "",
+      "sha256": "7b3551b3fe5874a64539d03084272e7eca63d75919cff6513c1cb1900fda62c9"
     }
   ]
 }

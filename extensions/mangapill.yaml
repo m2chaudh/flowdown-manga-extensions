@@ -1,0 +1,164 @@
+id: mangapill
+name: Mangapill
+version: 1.0.0
+api_version: 1
+homepage: https://mangapill.com
+image_referer: "https://mangapill.com"
+allowed_domains:
+  - mangapill.com
+  - cdn.readdetectiveconan.com
+default_language: en
+nsfw: optional
+description: |
+  Mainstream English manga aggregator. Clean HTML structure — every
+  page (search, details, reader) inlines its full content as plain
+  HTML with no client-side hydration step, which makes scraping
+  trivial.
+
+  URL shape: titles at `/manga/<numeric-id>/<slug>`, chapters at
+  `/chapters/<numeric-id>-N00000/<slug>-chapter-N`. The compound
+  identifier `<id>-N00000` is unique per chapter; we capture it raw
+  via {raw:id} so the dash is preserved verbatim.
+
+  Pages are served by `cdn.readdetectiveconan.com`. The CDN enforces
+  `Referer: https://mangapill.com/` hotlink protection (verified
+  empirically — no-Referer GET returns HTTP 403). `image_referer`
+  routes through `manga-img://` to add the Referer.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://mangapill.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search at /search?q=<query>. Each result card is a top-level
+# `<div>` that contains one figure-anchor to `/manga/<id>/<slug>` and
+# a title anchor underneath. The wrapper grid is
+# `.my-3.grid.justify-end` but the card itself is just `<div>`. We
+# match `div:has(> a[href^="/manga/"]) > a > figure` indirectly by
+# selecting the grid items via `div.my-3.grid > div`.
+search:
+  url: "https://mangapill.com/search?q={query}"
+  response: html
+  items: "div.my-3.grid > div"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/manga\/(\d+\/[^"]+)"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<div class="mt-3 font-black[^"]*">([\s\S]*?)<\/div>/);
+        if (m) return m[1].replace(/<[^>]+>/g, '').trim();
+        const m2 = html.match(/<img[^>]+alt="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+\ssrc="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Manga details: /manga/<id>/<slug>. The header card contains a unique
+# `<h1 class="font-bold text-lg md:text-2xl">` for the title, a
+# `<p class="text-sm text--secondary">` for the description, and a
+# label/text grid for type/status/year. The cover is a lazy-loaded
+# `<img data-src="https://cdn.readdetectiveconan.com/file/mangapill/i/<id>.jpg">`.
+manga_details:
+  url: "https://mangapill.com/manga/{raw:id}?_={id}"
+  response: html
+  fields:
+    title: "h1.font-bold"
+    description: "p.text-sm.text--secondary"
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<img[^>]+data-src="(https?:\/\/cdn\.readdetectiveconan\.com\/file\/mangapill\/i\/[^"]+)"/);
+        if (m) return m[1].trim();
+        // Fallback: og:image meta.
+        const m2 = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    authors: "(null)"
+    status: |
+      (function(){
+        const html = response.html || '';
+        // <label class="text-secondary">Status</label><div>finished</div>
+        const m = html.match(/<label class="text-secondary">\s*Status\s*<\/label>\s*<div>\s*([^<]+?)\s*<\/div>/i);
+        if (!m) return 'ongoing';
+        const s = m[1].trim().toLowerCase();
+        if (s.startsWith('finish') || s.startsWith('complet') || s.startsWith('end')) return 'completed';
+        if (s.startsWith('hiatus') || s.startsWith('on hold') || s.startsWith('paused')) return 'hiatus';
+        if (s.startsWith('cancel') || s.startsWith('dropped') || s.startsWith('discont')) return 'cancelled';
+        return 'ongoing';
+      })()
+
+# Chapter list lives in the same /manga/<id>/<slug> page. Each chapter
+# is `<a class="border border-border p-1 hover:bg-brand hover:text-white"
+#       href="/chapters/<id>-NNNNNN/<slug>-chapter-N" title=" Chapter N">Chapter N</a>`.
+# We emit the path-segment after /chapters/ as the chapter id so the
+# reader URL can rebuild verbatim. The compound id contains both a
+# dash AND a slash, so {raw:id} is required.
+chapter_list:
+  url: "https://mangapill.com/manga/{raw:id}?_={id}"
+  response: html
+  items: "a.border.border-border.p-1"
+  fields:
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/chapters\/([^"\/]+\/[^"\/?#]+)/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const t = (item.text || '').trim();
+        const m = t.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : t;
+      })()
+    title: |
+      (function(){
+        const t = (item.text || '').trim();
+        return t;
+      })()
+    published_at: "(null)"
+    scanlator: "(null)"
+
+# Page list. Reader at /chapters/<compound-id>/<slug> inlines every
+# page as `<img class="js-page" data-src="https://cdn.readdetectiveconan.com/...">`.
+# All images on the page are js-page; no sentinels to filter.
+page_list:
+  url: "https://mangapill.com/chapters/{raw:id}?_={id}"
+  response: html
+  pages: "img.js-page@data-src"
+
+tests:
+  - kind: search
+    query: "naruto"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "3069/naruto"
+    expect:
+      min_results: 100
+  - kind: page_list
+    fixture_id: "3069-10700000/naruto-chapter-700"
+    expect:
+      min_pages: 5
+      first_page_url_https: true

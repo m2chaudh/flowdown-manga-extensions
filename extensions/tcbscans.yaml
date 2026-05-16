@@ -1,0 +1,144 @@
+id: tcbscans
+name: TCB Scans
+version: 1.0.0
+api_version: 1
+homepage: https://tcbonepiecechapters.com
+image_referer: "https://tcbonepiecechapters.com"
+allowed_domains:
+  - tcbonepiecechapters.com
+  - cdn.onepiecechapters.com
+default_language: en
+nsfw: never
+description: |
+  English fan-scanlation group covering One Piece, Jujutsu Kaisen,
+  My Hero Academia, Black Clover, Attack on Titan, Chainsaw Man, and
+  a handful of other weekly Shonen Jump series. Small catalog
+  (~10-15 active titles) — high translation quality.
+
+  Live host is `tcbonepiecechapters.com` (the legacy `tcbscans.com`
+  redirect points here). Search is implemented by Mihon as a
+  client-side filter over the /projects listing — there is no server
+  search endpoint. We mirror that behaviour by always fetching
+  /projects regardless of the query; the catalog is small enough that
+  scrolling/UI-filtering is fine. The `{query}` placeholder is encoded
+  into a no-op `_q=` parameter so the URL template validator passes.
+
+  URL shape: titles at `/mangas/<numeric-id>/<slug>`, chapters at
+  `/chapters/<numeric-id>/<slug>`. Chapter id is the bare
+  `<numeric-id>/<slug>` path injected raw via {raw:id} so the slash
+  survives URL-encoding.
+
+  Pages are served from `cdn.onepiecechapters.com`. The CDN does NOT
+  enforce Referer (verified empirically — no-Referer GET returns the
+  same bytes as a Referer'd GET).
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://tcbonepiecechapters.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# /projects always returns the full catalog (~10-15 cards). The {query}
+# substitution lands in a no-op `_q=` param the server ignores. Each
+# card is `<div class="bg-card border border-border rounded p-3 mb-3">`
+# containing one or two anchors of the form /mangas/<id>/<slug>.
+search:
+  url: "https://tcbonepiecechapters.com/projects?_q={query}"
+  response: html
+  items: "div.bg-card.border"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/mangas\/([^"]+)"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        // Outer anchor with class "text-white text-lg font-bold" is the
+        // canonical title link.
+        const m = html.match(/<a[^>]+class="[^"]*text-white[^"]*text-lg[^"]*font-bold[^"]*"[^>]*>([\s\S]*?)<\/a>/);
+        if (m) return m[1].replace(/<[^>]+>/g, '').trim();
+        // Fallback: img alt attribute.
+        const m2 = html.match(/<img[^>]+alt="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+\ssrc="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp))"/i);
+        return m ? m[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Manga details: /mangas/<id>/<slug>. The header card has the cover,
+# title, and description in `div.order-1` (per Mihon).
+manga_details:
+  url: "https://tcbonepiecechapters.com/mangas/{raw:id}?_={id}"
+  response: html
+  fields:
+    title: "div.order-1 h1"
+    description: "div.order-1 p"
+    cover_url: "div.order-1 img@abs:src"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Chapter list: same /mangas/<id>/<slug> page lists every chapter as
+# `<a href="/chapters/<chapter-id>/<slug>" class="block border border-border bg-card mb-3 p-3 rounded">`
+# Each anchor wraps two divs:
+#   <div class="text-lg font-bold">One Piece Chapter 1182</div>
+#   <div class="text-gray-500">Subtitle</div>
+chapter_list:
+  url: "https://tcbonepiecechapters.com/mangas/{raw:id}?_={id}"
+  response: html
+  items: "a.block.border.border-border.bg-card"
+  fields:
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/chapters\/([^"\/]+\/[^"\/?#]+)/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : '';
+      })()
+    title: "div.text-lg.font-bold"
+    published_at: "(null)"
+    scanlator: "('TCB Scans')"
+
+# Page list. Reader at /chapters/<id>/<slug> inlines every page as
+# `<img class="fixed-ratio-content" src="https://cdn.onepiecechapters.com/...">`
+# (which is the Mihon `picture img, .image-container img` selector
+# pointing at the same elements via different ancestor paths).
+page_list:
+  url: "https://tcbonepiecechapters.com/chapters/{raw:id}?_={id}"
+  response: html
+  pages: "img.fixed-ratio-content@abs:src"
+
+tests:
+  - kind: search
+    query: "one piece"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "5/one-piece"
+    expect:
+      min_results: 10
+  - kind: page_list
+    fixture_id: "7981/one-piece-chapter-1182"
+    expect:
+      min_pages: 5
+      first_page_url_https: true

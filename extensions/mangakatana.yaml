@@ -1,0 +1,190 @@
+id: mangakatana
+name: MangaKatana
+version: 1.0.0
+api_version: 1
+homepage: https://mangakatana.com
+image_referer: "https://mangakatana.com"
+allowed_domains:
+  - mangakatana.com
+  - i1.mangakatana.com
+  - i2.mangakatana.com
+  - i3.mangakatana.com
+default_language: en
+nsfw: optional
+description: |
+  Mainstream English manga aggregator. Large catalog including Naruto,
+  Bleach, Vagabond, Berserk, etc. The reader page uses a small JS
+  trick to obscure the image URLs from naive scrapers: instead of
+  putting URLs in `<img src=>`, the HTML carries placeholder
+  `<img data-src="#">` tags and the real URLs live in a
+  `var <random-name>=['url1','url2',…];` inline script. We extract
+  the variable name by finding the substring `data-src','<name>` in
+  the reader-init JS, then parse the matching array.
+
+  URL shape: titles at `/manga/<slug>.<id>` (where `<id>` is the
+  numeric manga id like "1205"), chapters at `/manga/<slug>.<id>/c<N>`.
+  Chapter id is `<slug>.<id>/c<N>` injected raw via {raw:id} so the
+  dot AND slash both survive URL-encoding.
+
+  Pages are served from `i1.mangakatana.com` (and i2/i3 fallbacks).
+  The CDN does NOT enforce Referer (verified empirically — direct
+  GET returns 200 with image bytes).
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://mangakatana.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search at /?search=<q>&search_by=book_name. Each card is
+# `<div class="item" data-id="<numeric-id>">` containing a
+# title-anchor and cover image. Note: when a single result matches
+# exactly, MangaKatana redirects to the detail page instead of
+# returning a search list (Mihon handles this with a fallback path).
+# Our YAML keeps it simple and assumes >=2 results most of the time;
+# for ambiguous queries like "naruto" the list is always populated.
+search:
+  url: "https://mangakatana.com/?search={query}&search_by=book_name"
+  response: html
+  items: "div#book_list > div.item"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="https?:\/\/[^"\/]+\/manga\/([^"\/?#]+)"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<h3 class="title">[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/);
+        return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+\ssrc="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<div class="status\s+([a-z]+)"/);
+        if (!m) return 'ongoing';
+        const s = m[1].toLowerCase();
+        if (s === 'completed' || s === 'finished') return 'completed';
+        if (s === 'hiatus' || s === 'paused') return 'hiatus';
+        if (s === 'cancelled' || s === 'dropped') return 'cancelled';
+        return 'ongoing';
+      })()
+
+# Manga details: /manga/<slug>.<id>. The detail page has:
+#   .heading      -> title (<h1 class="heading">)
+#   .cover img    -> cover URL
+#   .summary p    -> description
+#   .value.status -> status label
+#   .author       -> author anchors
+manga_details:
+  url: "https://mangakatana.com/manga/{raw:id}?_={id}"
+  response: html
+  fields:
+    title: "h1.heading"
+    description: ".summary p"
+    cover_url: ".cover img@abs:src"
+    authors: ".author"
+    status: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<div class="d-cell-small value status\s+([a-z]+)"/);
+        if (!m) return 'ongoing';
+        const s = m[1].toLowerCase();
+        if (s === 'completed' || s === 'finished') return 'completed';
+        if (s === 'hiatus' || s === 'paused') return 'hiatus';
+        if (s === 'cancelled' || s === 'dropped') return 'cancelled';
+        return 'ongoing';
+      })()
+
+# Chapter list: same /manga/<slug>.<id> page, inside a UIKit table.
+# Each <tr> has data-jump attribute and wraps `.chapter` + `.update_time`.
+# The chapter link is `/manga/<slug>.<id>/c<N>`.
+chapter_list:
+  url: "https://mangakatana.com/manga/{raw:id}?_={id}"
+  response: html
+  items: "tr:has(.chapter)"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="https?:\/\/[^"\/]+\/manga\/([^"]+?\/c[^"\/?#]+)"/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<a[^>]+href="[^"]*\/c([\d.]+)"/);
+        return m ? m[1] : '';
+      })()
+    title: ".chapter a"
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<div class="update_time">\s*([^<]+?)\s*<\/div>/);
+        if (!m) return null;
+        // Format: "Jun-08-2019" — Date.parse needs "Jun 08, 2019".
+        const s = m[1].trim().replace(/^([A-Za-z]+)-(\d+)-(\d+)$/, '$1 $2, $3');
+        const ts = Date.parse(s);
+        return isFinite(ts) ? Math.floor(ts / 1000) : null;
+      })()
+    scanlator: "(null)"
+
+# Page list. Reader at /manga/<slug>.<id>/c<N>. The HTML has placeholder
+# `<img data-src="#">` tags; the real image URLs live in a
+# `var <random>=['url1','url2',…];` inline script. We:
+#   1. Find the var name via /data-src['"]?,\s*(\w+)/ — Mihon's exact regex.
+#   2. Find /var <name>=\[(.+?)\]/ to grab the array body.
+#   3. Extract each 'url' with /'([^']*)'/g.
+page_list:
+  url: "https://mangakatana.com/manga/{raw:id}?_={id}"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      const nameMatch = html.match(/data-src['"]?,\s*(\w+)/);
+      if (!nameMatch) return [];
+      const name = nameMatch[1];
+      const arrayRe = new RegExp("var\\s+" + name + "\\s*=\\s*\\[([^\\]]+)\\]");
+      const arrMatch = html.match(arrayRe);
+      if (!arrMatch) return [];
+      const urls = [];
+      const urlRe = /'([^']*)'/g;
+      let m;
+      while ((m = urlRe.exec(arrMatch[1])) !== null) {
+        const u = m[1].trim();
+        if (u && u.startsWith('http')) urls.push(u);
+      }
+      return urls;
+    })()
+
+tests:
+  - kind: search
+    query: "naruto"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "naruto.1205"
+    expect:
+      min_results: 100
+  - kind: page_list
+    fixture_id: "naruto.1205/c700"
+    expect:
+      min_pages: 5
+      first_page_url_https: true
