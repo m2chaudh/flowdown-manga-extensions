@@ -3,16 +3,16 @@
   "extensions": [
     {
       "id": "mangadex",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaDex",
       "language": "en",
       "nsfw": "optional",
-      "description": "Open scanlation catalog, ~80k titles. Stable JSON API.",
+      "description": "Open scanlation catalog, ~80k titles. Stable JSON API. v1.1 adds chapter_count + tags in search hits for client-side filtering.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangadex.yaml",
       "icon_url": "",
-      "sha256": "a2aecb55e06f6603264290a41dcdeefb49a6f906c8ec689876df8e8db2ad2ae2"
+      "sha256": "6cdfeaaa1a63bc5c7bb0c26fca15ff7176272e110e7984e9789d2460772a3460"
     },
     {
       "id": "comick",

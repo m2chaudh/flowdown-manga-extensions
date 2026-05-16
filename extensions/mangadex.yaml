@@ -1,6 +1,6 @@
 id: mangadex
 name: MangaDex
-version: 1.0.0
+version: 1.1.0
 api_version: 1
 homepage: https://mangadex.org
 allowed_domains:
@@ -29,6 +29,8 @@ search:
     status: "$.attributes.status"
     cover_url: "(function(){ const c = item.relationships.find(r => r.type === 'cover_art'); return c ? `https://uploads.mangadex.org/covers/${item.id}/${c.attributes.fileName}.256.jpg` : null; })()"
     authors: "item.relationships.filter(r => r.type === 'author').map(a => a.attributes.name).join(', ')"
+    chapter_count: "(function(){ const n = parseFloat(item.attributes.lastChapter); return isNaN(n) ? null : Math.max(0, Math.floor(n)); })()"
+    tags: "(item.attributes.tags || []).map(t => (t.attributes && t.attributes.name && (t.attributes.name.en || Object.values(t.attributes.name)[0])) || null).filter(Boolean)"
 
 manga_details:
   url: "https://api.mangadex.org/manga/{id}?includes[]=cover_art&includes[]=author"
