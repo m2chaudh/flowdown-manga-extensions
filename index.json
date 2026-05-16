@@ -65,6 +65,58 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhwa18.yaml",
       "icon_url": "",
       "sha256": "da0bfbf57437e5e24cb81aaf884c722409b82230fb70896d89e3c7d3fb7a9058"
+    },
+    {
+      "id": "manga18fx",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Manga18fx",
+      "language": "en",
+      "nsfw": "always",
+      "description": "Explicit Korean / Japanese manhwa aggregator. HTML-scraped from manga18fx.com. Non-standard layout (custom .bsx-item cards, row-content-chapter list) — not Madara. Mature content throughout; include_nsfw is a no-op since the whole catalog is 18+. Chapter id is `<slug>/chapter-N` injected raw to preserve the slash.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manga18fx.yaml",
+      "icon_url": "",
+      "sha256": "035298ee951e6229226294dcf4264b13b6ec86547600ca9228911d332b5a7dea"
+    },
+    {
+      "id": "mangadistrict",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Manga District",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Madara-themed WordPress aggregator (mangadistrict.com) with a mixed adult + SFW catalog, heavily skewed toward mature Korean manhwa and BL/yaoi. URL shape `/series/<slug>/chapter-N/`; reader uses direct `src=` images (not lazy data-src). Chapter id is `<slug>/chapter-N` injected raw to preserve the slash.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangadistrict.yaml",
+      "icon_url": "",
+      "sha256": "9899b14e6968f70872d409740039a0ff746a65b2ce21de79a938a43e13f9e154"
+    },
+    {
+      "id": "pornhwa18",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "PornHwa18",
+      "language": "en",
+      "nsfw": "always",
+      "description": "Explicit pornhwa aggregator (pornhwa18.com) built on Qwik SSR — NOT Madara. All page content is in the server-rendered HTML, so no JS execution is required. URL shape `/comic/<slug>/chapter-N/`; chapter dates are relative (\"1 day ago\") and converted to absolute Unix seconds at scrape time. Entire catalog is 18+.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/pornhwa18.yaml",
+      "icon_url": "",
+      "sha256": "b261856e9abd5a4b6a2af18c36a61e9d0f994c4168afea3926cef914c2977fb4"
+    },
+    {
+      "id": "manhwax",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "Manhwax",
+      "language": "en",
+      "nsfw": "always",
+      "description": "Explicit Korean manhwa aggregator (manhwax.top) on the MangaThemesia WordPress theme. URL shape `/manga/<slug>/` for details and flat `/<slug>-chapter-N-english/` for reader. Reader extracts a ts_reader.run({\"sources\":[{\"images\":[…]}]}) JSON blob; images live on imgbox.com (no Referer required). Entire catalog is 18+.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhwax.yaml",
+      "icon_url": "",
+      "sha256": "64a66711423e2ff9982afe65713976bd2571f5b64b41996e2c6034ba49532a0b"
     }
   ]
 }

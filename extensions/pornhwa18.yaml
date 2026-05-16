@@ -1,0 +1,246 @@
+id: pornhwa18
+name: PornHwa18
+version: 1.0.0
+api_version: 1
+homepage: https://pornhwa18.com
+image_referer: "https://pornhwa18.com"
+allowed_domains:
+  - pornhwa18.com
+  - cdn.manhwature.com
+  - s1.manhwature.com
+  - i0.wp.com
+  - min.manhwa18.net
+default_language: en
+nsfw: always
+description: |
+  Explicit pornhwa aggregator. The site is built on Qwik (server-side
+  rendered React-ish), NOT WordPress/Madara — every card class is a
+  long Tailwind blob — so this YAML scrapes via /comic/<slug>/ anchors
+  and content-based regex rather than canonical Madara selectors.
+
+  URL shape: each title lives at `/comic/<slug>/` and each chapter at
+  `/comic/<slug>/chapter-N/`. The manga id is the bare slug; the
+  chapter id is `<manga-slug>/chapter-N` injected raw via {raw:id}
+  so the slash survives URL-encoding.
+
+  Pages are served from `s1.manhwature.com` (and covers from
+  `cdn.manhwature.com/resize/…/min.manhwa18.net/…`). Neither CDN
+  enforces Referer (verified empirically). `image_referer` still
+  routes through `manga-img://` defensively.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://pornhwa18.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search path is /search/<keyword>/. Verified: 18 cards for "love".
+# Each card is wrapped in `<div class="overflow-hidden rounded-lg
+# bg-white shadow-md transition-all delay-200 duration-1000
+# hover:shadow-green-500 dark:bg-slate-800">` — a stable Tailwind
+# combination that we narrow via `.overflow-hidden.rounded-lg.shadow-md`.
+# Each card contains exactly one /comic/<slug>/ slug, one lazy-loaded
+# cover image (data-src with a base64 placeholder in src), and one
+# <h2> with the title in its inner anchor.
+search:
+  url: "https://pornhwa18.com/search/{query}/"
+  response: html
+  items: "div.overflow-hidden.rounded-lg.shadow-md"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/comic\/([^"\/]+)\/"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/);
+        if (!m) return '';
+        return m[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+\ssrc="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Manga details: /comic/<slug>/ renders the title, cover, genres,
+# description, and full chapter list inline. The Qwik SSR HTML has
+# stable anchor markers (no React hydration placeholders mid-content),
+# so we use content-based regex rather than CSS selectors where the
+# Tailwind class strings are unstable.
+manga_details:
+  url: "https://pornhwa18.com/comic/{id}/"
+  response: html
+  fields:
+    title: |
+      (function(){
+        const html = response.html || '';
+        // The title h1 has the unique `md:drop-shadow-solid` modifier
+        // that no other h1 on the page carries. The site logo h1 and
+        // section headings ("Chapter List", "Comments") use just
+        // `text-2xl font-bold`, so we match strictly.
+        const m = html.match(/<h1 class="text-2xl font-bold md:drop-shadow-solid[^"]*">([\s\S]*?)<\/h1>/);
+        if (m) return m[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim();
+        // Fallback: og:title meta minus the " - Pornhwa" suffix.
+        const m2 = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/);
+        if (m2) return m2[1].replace(/\s*-\s*Pornhwa\s*$/i, '').trim();
+        return '';
+      })()
+    description: |
+      (function(){
+        const html = response.html || '';
+        // The synopsis sits inside <div class="mt-4 w-full"><p>…</p></div>
+        // just before the "Chapter List" heading. Anchor on the chapter
+        // list span ("Chapter</span> List") and pick the LAST <p> in
+        // the slice preceding it.
+        const chapIdx = html.indexOf('Chapter</span> List');
+        const slice = chapIdx > 0 ? html.substring(0, chapIdx) : html;
+        const ms = [...slice.matchAll(/<p>([\s\S]*?)<\/p>/g)];
+        if (ms.length === 0) return null;
+        const t = ms[ms.length - 1][1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+        return t || null;
+      })()
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        // The og:image meta carries the canonical cover.
+        const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+style="object-fit:cover;width:100%"\s+src="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    authors: |
+      (function(){
+        const html = response.html || '';
+        // The Author block: <p class="text-md font-bold">Author</p>TEXT</div>
+        // TEXT is either "-" (no author) or an <a>name</a> or plain text.
+        const m = html.match(/<p class="text-md font-bold">\s*Author\s*<\/p>([\s\S]*?)<\/div>/i);
+        if (!m) return null;
+        const t = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        if (!t || t === '-' || t.toLowerCase() === 'updating') return null;
+        return t;
+      })()
+    status: |
+      (function(){
+        const html = response.html || '';
+        // Status pill is one of: bg-green-800 (on-going), bg-blue-800
+        // (completed), bg-gray-* (hiatus). Match the inner text.
+        const m = html.match(/class="w-full rounded-r-full bg-[a-z]+-800 px-4 py-3 text-center text-sm font-bold text-white">([^<]+)</);
+        if (!m) return 'ongoing';
+        const s = m[1].trim().toLowerCase();
+        if (s.startsWith('complet') || s.startsWith('finish') || s.startsWith('end')) return 'completed';
+        if (s.startsWith('hiatus') || s.startsWith('on hold') || s.startsWith('paused')) return 'hiatus';
+        if (s.startsWith('cancel') || s.startsWith('dropped')) return 'cancelled';
+        return 'ongoing';
+      })()
+
+# Chapter list lives in the same /comic/<slug>/ page. Each chapter is
+# an <a class="… visited:viewed …" href="/comic/<slug>/chapter-N/">
+# wrapping a book-icon <span> and a <div><p>Chapter N</p>
+# <p class="text-xs font-medium">N day(s)/hour(s) ago</p></div>.
+#
+# Selecting on `a.visited\:viewed` picks up exactly the chapter
+# anchors (the wrapper class is `… visited:viewed …` — Tailwind
+# encodes the `:` as an escapable delimiter; scraper handles `\:`).
+chapter_list:
+  url: "https://pornhwa18.com/comic/{id}/"
+  response: html
+  items: "a.visited\\:viewed"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/comic\/([^"\/]+\/chapter-[^"\/]+)\/?$/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/chapter-([\d.]+)\/?$/i);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<p>([^<]+)<\/p>/);
+        return m ? m[1].trim() : '';
+      })()
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        // Inner text: "Chapter 9 \n 1 day ago" — find the text-xs <p>.
+        const m = html.match(/<p class="text-xs[^"]*">([^<]+)<\/p>/);
+        if (!m) return null;
+        const s = m[1].trim().toLowerCase();
+        const now = Math.floor(Date.now() / 1000);
+        const rel = s.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/);
+        if (!rel) return null;
+        const n = parseInt(rel[1], 10);
+        const unit = rel[2];
+        const mul = {
+          second: 1,
+          minute: 60,
+          hour: 3600,
+          day: 86400,
+          week: 604800,
+          month: 2629800,
+          year: 31557600
+        }[unit];
+        return mul ? (now - n * mul) : null;
+      })()
+    scanlator: "(null)"
+
+# Page list. Reader at /comic/<slug>/chapter-N/ renders every page
+# as <img data-src="https://s1.manhwature.com/…/chapter-N/…jpg">.
+# Filter to only s1.manhwature.com to exclude the cover thumbnail at
+# the top of the reader (which is on cdn.manhwature.com/resize/…).
+#
+# Chapter id encodes "<slug>/chapter-N" — we inject it raw via
+# {raw:id} so the slash isn't percent-encoded. The runtime accepts
+# {raw:id} as a valid placeholder.
+page_list:
+  url: "https://pornhwa18.com/comic/{raw:id}/"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      const urls = [];
+      const re = /<img[^>]+data-src="(https?:\/\/s1\.manhwature\.com\/[^"]+\.(?:jpg|jpeg|png|webp))"/g;
+      let m;
+      while ((m = re.exec(html)) !== null) {
+        urls.push(m[1].trim());
+      }
+      return urls;
+    })()
+
+tests:
+  - kind: search
+    query: "love"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "an-american-temptation"
+    expect:
+      min_results: 3
+  - kind: page_list
+    fixture_id: "an-american-temptation/chapter-7"
+    expect:
+      min_pages: 5
+      first_page_url_https: true

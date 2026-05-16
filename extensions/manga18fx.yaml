@@ -1,0 +1,170 @@
+id: manga18fx
+name: Manga18fx
+version: 1.0.0
+api_version: 1
+homepage: https://manga18fx.com
+image_referer: "https://manga18fx.com"
+allowed_domains:
+  - manga18fx.com
+  - img01.manga18fx.com
+default_language: en
+nsfw: always
+description: |
+  Explicit Korean / Japanese manhwa aggregator. HTML-scraped from
+  manga18fx.com — the same host Mihon's Manga18fx extension targets.
+  Despite the Madara-style header, manga18fx uses a non-standard layout
+  (`bsx-item` search cards, `row-content-chapter` chapter list) which is
+  why the selectors below don't match the stock Madara fixtures.
+
+  URL shape: each title lives at `/manga/<slug>` and each chapter at
+  `/manga/<slug>/chapter-N`. The manga id is the bare slug; the chapter
+  id is `<manga-slug>/chapter-N` injected raw via {raw:id} so the slash
+  survives URL-encoding.
+
+  Pages are served by `img01.manga18fx.com`. The CDN does not enforce
+  Referer (verified empirically — direct GET returns 200 with image
+  bytes). `image_referer` still routes through `manga-img://` to keep
+  the proxy path warm in case the CDN starts enforcing hotlinking.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://manga18fx.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search hits /search?q=… — verified live: 24 results for "love".
+# Each card is `div.bsx-item` carrying:
+#   - <a href="/manga/<slug>" title="…">   (id + we drop the leading slash)
+#   - <img data-src="…" src="…">           (cover, both attrs hold the URL)
+#   - <h3 class="tt"><a>Title</a></h3>     (title)
+# The whole catalog is mature, so the `include_nsfw` preference is a
+# no-op (kept for consistency with other sources).
+search:
+  url: "https://manga18fx.com/search?q={query}&page=1"
+  response: html
+  items: "div.bsx-item"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/manga\/([^"\/]+)"/);
+        return m ? m[1] : '';
+      })()
+    title: "h3.tt a"
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+\ssrc="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Manga details: /manga/<slug> renders the info card + inline chapter
+# list (no AJAX). Title in <h1>, description in `.dsct`, cover via
+# `.img-loading` <img data-src>. Status/author live inside
+# `.summary-content` <div>s after labelled <div class="summary-heading">
+# blocks; we walk the HTML in JS to read them robustly. Many titles
+# omit Author — we fall back to null.
+manga_details:
+  url: "https://manga18fx.com/manga/{id}"
+  response: html
+  fields:
+    title: "h1"
+    description: ".dsct"
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<img[^>]+class="img-loading"[^>]+data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+class="img-loading"[^>]+\ssrc="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    authors: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<div class="summary-heading">\s*<h5>\s*Author[\s\S]*?<\/h5>\s*<\/div>\s*<div class="summary-content">([\s\S]*?)<\/div>/i);
+        if (!m) return null;
+        const t = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        return (t && t.toLowerCase() !== 'updating') ? t : null;
+      })()
+    status: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<div class="summary-heading">\s*<h5>\s*Status[\s\S]*?<\/h5>\s*<\/div>\s*<div class="summary-content">([\s\S]*?)<\/div>/i);
+        if (!m) return 'ongoing';
+        const s = m[1].replace(/<[^>]+>/g, '').trim().toLowerCase();
+        if (s.startsWith('completed') || s.startsWith('finished')) return 'completed';
+        if (s.startsWith('on hold') || s.startsWith('hiatus')) return 'hiatus';
+        if (s.startsWith('cancel') || s.startsWith('dropped')) return 'cancelled';
+        return 'ongoing';
+      })()
+
+# Chapter list lives in `ul.row-content-chapter` inside the same detail
+# page. Each <li class="a-h"> contains one anchor with the chapter URL
+# and a `<span class="chapter-time">` with "dd MMM yy" e.g. "08 May 26".
+# The chapter id we emit is "<manga-slug>/chapter-N", which page_list
+# then injects back via {raw:id}.
+chapter_list:
+  url: "https://manga18fx.com/manga/{id}"
+  response: html
+  items: "ul.row-content-chapter li"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/manga\/([^"\/]+\/chapter-[^"]+)"/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const t = (item.text || '').trim();
+        const m = t.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : t.split('\n')[0].trim();
+      })()
+    title: "a.chapter-name"
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        // Format: <span class="chapter-time text-nowrap" title="">08 May 26</span>
+        const m = html.match(/<span class="chapter-time[^"]*"[^>]*>\s*(\d{1,2})\s+(\w+)\s+(\d{2})\s*<\/span>/);
+        if (!m) return null;
+        const iso = m[1] + ' ' + m[2] + ' 20' + m[3];
+        const ts = Date.parse(iso);
+        return isFinite(ts) ? Math.floor(ts / 1000) : null;
+      })()
+    scanlator: "(null)"
+
+# Page list. Reader at /manga/<manga-slug>/chapter-N has every page
+# stacked in <div class="page-break"><img data-src="…"></div>. We
+# inject the chapter id raw via {raw:id} to preserve the slash;
+# the runtime accepts {raw:id} as a valid placeholder.
+page_list:
+  url: "https://manga18fx.com/manga/{raw:id}"
+  response: html
+  pages: "div.page-break img@abs:data-src"
+
+tests:
+  - kind: search
+    query: "love"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "love-quest-raw"
+    expect:
+      min_results: 5
+  - kind: page_list
+    fixture_id: "love-quest-raw/chapter-1"
+    expect:
+      min_pages: 3
+      first_page_url_https: true
