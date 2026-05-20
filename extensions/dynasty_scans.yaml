@@ -1,0 +1,135 @@
+id: dynasty_scans
+name: Dynasty Scans
+version: 0.1.0
+api_version: 1
+homepage: https://dynasty-scans.com
+allowed_domains:
+  - dynasty-scans.com
+default_language: en
+nsfw: optional
+description: |
+  Long-running specialty scanlation archive — primary focus is yuri /
+  GL / 4-koma / specialty doujinshi. Smaller catalog than the
+  mainstream aggregators but virtually no overlap with anything else
+  in the registry.
+
+  URL shape:
+    - search:   /search?q=<query>&classes[]=Series
+    - series:   /series/<slug>
+    - chapter:  /chapters/<chapter-slug>
+
+  Reader inlines a literal `var pages = [...]` JS array containing
+  every image's path under /system/releases/. Trivial to parse with
+  a JS regex match in the YAML.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://dynasty-scans.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+search:
+  url: "https://dynasty-scans.com/search?q={query}&classes%5B%5D=Series"
+  response: html
+  items: "dl.chapter-list dd"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/series\/([^"]+)"\s+class="name"/);
+        return m ? m[1] : '';
+      })()
+    title: "a.name"
+    cover_url: "(null)"
+    description: "(null)"
+    authors: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/by\s+<a href="\/authors\/[^"]+">([^<]+)<\/a>/);
+        return m ? m[1].trim() : null;
+      })()
+    status: "('ongoing')"
+
+manga_details:
+  url: "https://dynasty-scans.com/series/{id}"
+  response: html
+  fields:
+    title: "h2.tag-title b"
+    description: ".description"
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<img[^>]+src="(\/system\/series_covers\/[^"]+)"/);
+        return m ? 'https://dynasty-scans.com' + m[1] : '';
+      })()
+    authors: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/Author:?[\s\S]*?<a href="\/authors\/[^"]+">([^<]+)<\/a>/);
+        return m ? m[1].trim() : null;
+      })()
+    status: "('ongoing')"
+
+# Chapters listed inline on the series page.
+chapter_list:
+  url: "https://dynasty-scans.com/series/{id}"
+  response: html
+  items: "dd a.name[href^='/chapters/']"
+  fields:
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/chapters\/([^"\/?#]+)/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const t = (item.text || '').trim();
+        const m = t.match(/(?:Ch\.?|Chapter)\s*([\d.]+)/i);
+        return m ? m[1] : t;
+      })()
+    title: |
+      (function(){
+        return (item.text || '').trim();
+      })()
+    published_at: "(null)"
+    scanlator: "(null)"
+
+# Reader inlines `var pages = [{"image":"/system/releases/000/.../001.webp",...}]`.
+page_list:
+  url: "https://dynasty-scans.com/chapters/{id}"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      const m = html.match(/var pages\s*=\s*(\[[\s\S]*?\]);/);
+      if (!m) return [];
+      try {
+        const arr = JSON.parse(m[1]);
+        return arr.map(p => 'https://dynasty-scans.com' + p.image);
+      } catch (e) {
+        return [];
+      }
+    })()
+
+tests:
+  - kind: search
+    query: "yuri"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "unrequited_yuri_love"
+    expect:
+      min_results: 1
+  - kind: page_list
+    fixture_id: "unrequited_yuri_love_ch00"
+    expect:
+      min_pages: 3
+      first_page_url_https: true

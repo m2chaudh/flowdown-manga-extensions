@@ -1,0 +1,160 @@
+id: weebcentral
+name: WeebCentral
+version: 0.1.0
+api_version: 1
+homepage: https://weebcentral.com
+image_referer: "https://weebcentral.com"
+allowed_domains:
+  - weebcentral.com
+  - temp.compsci88.com
+  - scans-hot.planeptune.us
+default_language: en
+nsfw: optional
+description: |
+  Mainstream English-translated manga aggregator. Spiritual successor to
+  Mangasee / Manga4Life (the original devs migrated here when those sites
+  shut down on 2025-01-10).
+
+  WeebCentral is HTMX-driven: most "pages" are fragments fetched by an
+  htmx attribute on the parent shell. We bypass the shell and hit the
+  fragment endpoints directly, which return clean text/html with no JS
+  challenge.
+
+  URL shape:
+    - series page:   /series/<ULID>/<Slug>
+    - chapter list:  /series/<ULID>/full-chapter-list   (HTMX fragment)
+    - chapter id:    /chapters/<chapter-ULID>
+    - reader frag:   /chapters/<chapter-ULID>/images?is_prev=False&current_page=1&reading_style=long_strip
+
+  Pages are served by `scans-hot.planeptune.us`. CDN does not enforce
+  Referer in spot-checks, but we set image_referer defensively (Mihon
+  does the same).
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://weebcentral.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Search hits the HTMX data endpoint directly. Each result is a top-level
+# <article> with an anchor whose href is the series URL containing the
+# stable ULID we use as the id.
+search:
+  url: "https://weebcentral.com/search/data?author=&text={query}&sort=Best+Match&order=Descending&official=Any&anime=Any&adult=Any&display_mode=Full+Display&limit=24&offset=0"
+  response: html
+  items: "article"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="https:\/\/weebcentral\.com\/series\/([0-9A-Z]+)\//);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<div class="text-ellipsis truncate text-white text-center text-lg z-20 w-\[90%\]">([^<]+)<\/div>/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+alt="([^"]+) cover"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+src="(https:\/\/temp\.compsci88\.com\/cover\/[^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/srcset="(https:\/\/temp\.compsci88\.com\/cover\/normal\/[^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Series page returns the wrapper that triggers full-chapter-list. Use the
+# fragment endpoint directly to skip the htmx step.
+manga_details:
+  url: "https://weebcentral.com/series/{id}"
+  response: html
+  fields:
+    title: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    description: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Chapter list lives at the htmx fragment endpoint.
+chapter_list:
+  url: "https://weebcentral.com/series/{id}/full-chapter-list?_={id}"
+  response: html
+  items: "a[href*='/chapters/']"
+  fields:
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/chapters\/([0-9A-Z]+)/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/Chapter\s+[\d.]+[^<]*/i);
+        return m ? m[0].trim() : '';
+      })()
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/checkNewChapter\('([^']+)'\)/);
+        if (!m) return null;
+        const ts = Date.parse(m[1]);
+        return isFinite(ts) ? Math.floor(ts / 1000) : null;
+      })()
+    scanlator: "(null)"
+
+# Reader fragment. Long-strip mode returns every page <img src> in one HTML.
+page_list:
+  url: "https://weebcentral.com/chapters/{id}/images?is_prev=False&current_page=1&reading_style=long_strip&_={id}"
+  response: html
+  pages: "section img[alt='Page']@src, section img@src"
+
+tests:
+  - kind: search
+    query: "naruto"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "01J76XY7E827QQQT0ERKCGH4CD"
+    expect:
+      min_results: 50
+  - kind: page_list
+    fixture_id: "01J8Z7WTD4218AGY0TGYYXZWZ2"
+    expect:
+      min_pages: 3
+      first_page_url_https: true

@@ -1,0 +1,133 @@
+id: manhuascan
+name: ManhuaScan
+version: 0.1.0
+api_version: 1
+homepage: https://manhuascan.us
+image_referer: "https://manhuascan.us"
+allowed_domains:
+  - manhuascan.us
+  - azmin.manga18.us
+default_language: en
+nsfw: optional
+description: |
+  Chinese manhua + Korean manhwa aggregator at manhuascan.us. Catalog
+  skews toward cultivation / xianxia (Martial Peak, Apotheosis, etc.)
+  which is sparsely covered in the rest of the registry.
+
+  URL shape:
+    - search:   /manga-list?title=<query>
+    - series:   /manga/<slug>
+    - chapter:  /manga/<slug>/chapter-N
+
+  IMPORTANT caveat: the search-by-title endpoint accepts the param
+  but doesn't strictly filter results — for unusual queries the page
+  falls back to its top titles. Treat the search behavior as
+  browse-by-keyword rather than precise filter; the user disambiguates
+  by reading the result list.
+
+  Reader images served from azmin.manga18.us (same family as
+  manga18fx in the existing registry). image_referer set defensively.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://manhuascan.us/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+search:
+  url: "https://manhuascan.us/manga-list?title={query}"
+  response: html
+  items: "div.bs > div.bsx"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="https:\/\/manhuascan\.us\/manga\/([^"\/]+)"/);
+        return m ? m[1] : '';
+      })()
+    title: "div.tt"
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+src="(https:\/\/azmin\.manga18\.us\/uploads\/manga\/[^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+manga_details:
+  url: "https://manhuascan.us/manga/{id}"
+  response: html
+  fields:
+    title: "h1.entry-title"
+    description: "div.entry-content p, div.desc"
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<img[^>]+src="(https:\/\/azmin\.manga18\.us\/uploads\/manga\/[^"]+\/cover\/[^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    authors: "(null)"
+    status: "('ongoing')"
+
+chapter_list:
+  url: "https://manhuascan.us/manga/{id}"
+  response: html
+  items: "li.wp-manga-chapter a, ul.chapter-list a[href*='/chapter-']"
+  fields:
+    # Emit the compound id "<manga-slug>/<chapter-slug>" so page_list can
+    # reconstruct the full URL with a single {raw:id} substitution.
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/manga\/([^"\/]+\/chapter-[\d.]+)/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/chapter-([\d.]+)/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        return (item.text || '').trim();
+      })()
+    published_at: "(null)"
+    scanlator: "(null)"
+
+# Reader at /manga/<slug>/chapter-N has #readerarea with direct <img src="...">.
+# We compose using both manga slug (from {id}) and chapter id.
+# Because the runtime uses {id} for the chapter id slot in page_list,
+# this template requires knowing the manga-slug — we pre-encode it as
+# part of the chapter id during chapter_list (i.e. emit "martial-peak/chapter-1").
+# Then the page_list URL uses {raw:id} so the slash survives.
+page_list:
+  url: "https://manhuascan.us/manga/{raw:id}?_={id}"
+  response: html
+  pages: "div#readerarea img@src"
+
+tests:
+  - kind: search
+    query: "martial"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "martial-peak"
+    expect:
+      min_results: 50
+  - kind: page_list
+    fixture_id: "martial-peak/chapter-1"
+    expect:
+      min_pages: 5
+      first_page_url_https: true

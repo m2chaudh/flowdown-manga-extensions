@@ -1,0 +1,152 @@
+id: hentaifox
+name: HentaiFox
+version: 0.1.0
+api_version: 1
+homepage: https://hentaifox.com
+image_referer: "https://hentaifox.com"
+allowed_domains:
+  - hentaifox.com
+  - i1.hentaifox.com
+  - i2.hentaifox.com
+  - i3.hentaifox.com
+  - i4.hentaifox.com
+  - i5.hentaifox.com
+default_language: en
+nsfw: always
+description: |
+  English-translated Japanese-origin doujinshi catalog (hentaifox.com).
+  Fills the gap left by the existing adult sources, which are all
+  Korean manhwa18+ aggregators — none of them cover traditional
+  Japanese doujinshi.
+
+  Doujinshi are modeled as a single chapter per gallery (gallery_id
+  acts as the chapter id; the manga has exactly one entry titled
+  "Chapter 1"). This is the standard pattern Mihon uses for nhentai-
+  family sites.
+
+  URL shape:
+    - search:    /search/?q=<query>
+    - gallery:   /gallery/<numeric-id>/
+    - reader:    /g/<numeric-id>/<page-n>/
+    - image:     https://i3.hentaifox.com/<load_dir>/<load_id>/<n>.webp
+
+  load_dir, load_id (== numeric gallery id here), and load_pages are
+  inlined as hidden inputs on the gallery page — page_list builds the
+  full image URL list deterministically with no extra fetch.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://hentaifox.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: true
+
+search:
+  url: "https://hentaifox.com/search/?q={query}"
+  response: html
+  items: "div.thumb"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/gallery\/(\d+)\/"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<h2 class="g_title"><a[^>]+>([^<]+)<\/a>/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+alt="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<source[^>]+srcset="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('completed')"
+
+manga_details:
+  url: "https://hentaifox.com/gallery/{id}/"
+  response: html
+  fields:
+    title: "h1"
+    description: "(null)"
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    authors: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<a class='tag_btn' href='\/artist\/[^']+'>([^<]+)\s*<span/);
+        return m ? m[1].trim() : null;
+      })()
+    status: "('completed')"
+
+# One synthetic chapter per gallery. We re-use the gallery id as the
+# chapter id; page_list then fetches the gallery page itself.
+chapter_list:
+  url: "https://hentaifox.com/gallery/{id}/"
+  response: html
+  items: "h1"
+  fields:
+    id: |
+      (function(){
+        const url = (response.url || '');
+        const m = url.match(/\/gallery\/(\d+)\//);
+        return m ? m[1] : '';
+      })()
+    number: "('1')"
+    title: "h1"
+    published_at: "(null)"
+    scanlator: "(null)"
+
+# Gallery page exposes load_dir / load_id / load_pages as hidden inputs.
+# Build N image URLs deterministically.
+page_list:
+  url: "https://hentaifox.com/gallery/{id}/"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      const dirM   = html.match(/name="load_dir"[^>]+value="([^"]+)"/);
+      const idM    = html.match(/name="load_id"[^>]+value="([^"]+)"/);
+      const pagesM = html.match(/name="load_pages"[^>]+value="(\d+)"/);
+      if (!dirM || !idM || !pagesM) return [];
+      const dir = dirM[1], gid = idM[1], n = parseInt(pagesM[1], 10);
+      const out = [];
+      for (let i = 1; i <= n; i++) {
+        out.push(`https://i3.hentaifox.com/${dir}/${gid}/${i}.webp`);
+      }
+      return out;
+    })()
+
+tests:
+  - kind: search
+    query: "test"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "162855"
+    expect:
+      min_results: 1
+  - kind: page_list
+    fixture_id: "162855"
+    expect:
+      min_pages: 1
+      first_page_url_https: true
