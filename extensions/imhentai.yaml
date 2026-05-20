@@ -1,0 +1,144 @@
+id: imhentai
+name: ImHentai
+version: 0.1.0
+api_version: 1
+homepage: https://imhentai.xxx
+image_referer: "https://imhentai.xxx"
+allowed_domains:
+  - imhentai.xxx
+  - m1.imhentai.xxx
+  - m2.imhentai.xxx
+  - m3.imhentai.xxx
+  - m10.imhentai.xxx
+default_language: en
+nsfw: always
+description: |
+  Sister-host to HentaiFox at imhentai.xxx. Catalog overlaps somewhat
+  with HentaiFox but adds meaningful coverage of Western porn comics,
+  3D CG, and Chinese doujin that HentaiFox doesn't index.
+
+  IMPORTANT: imhentai uses an alphanumeric `load_id` (e.g.
+  "da8z7mg4j2") for the image-CDN path, NOT the numeric gallery id
+  in the URL. Page URLs are:
+
+    https://m10.imhentai.xxx/<load_dir>/<load_id>/<n>.jpg
+
+  load_dir, load_id, and load_pages are all hidden inputs on the
+  gallery page — page_list reads them in one fetch.
+
+  URL shape:
+    - search:    /search/?key=<query>
+    - gallery:   /gallery/<numeric-id>/
+    - reader:    /view/<numeric-id>/<page-n>/
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://imhentai.xxx/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: true
+
+search:
+  url: "https://imhentai.xxx/search/?key={query}"
+  response: html
+  items: "div.thumb"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/gallery\/(\d+)\/"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<h2[^>]*class="[^"]*caption[^"]*"[^>]*>\s*<a[^>]+>([^<]+)<\/a>/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<img[^>]+alt="([^"]+)"/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/data-src="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('completed')"
+
+manga_details:
+  url: "https://imhentai.xxx/gallery/{id}/"
+  response: html
+  fields:
+    title: "h1"
+    description: "(null)"
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    authors: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/href='\/artist\/[^']+'>([^<]+)\s*</);
+        return m ? m[1].trim() : null;
+      })()
+    status: "('completed')"
+
+# Single synthetic chapter per gallery.
+chapter_list:
+  url: "https://imhentai.xxx/gallery/{id}/"
+  response: html
+  items: "h1"
+  fields:
+    id: |
+      (function(){
+        const url = (response.url || '');
+        const m = url.match(/\/gallery\/(\d+)\//);
+        return m ? m[1] : '';
+      })()
+    number: "('1')"
+    title: "h1"
+    published_at: "(null)"
+    scanlator: "(null)"
+
+page_list:
+  url: "https://imhentai.xxx/gallery/{id}/"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      const dirM   = html.match(/name="load_dir"[^>]+value="([^"]+)"/);
+      const idM    = html.match(/name="load_id"[^>]+value="([^"]+)"/);
+      const pagesM = html.match(/name="load_pages"[^>]+value="(\d+)"/);
+      if (!dirM || !idM || !pagesM) return [];
+      const dir = dirM[1], lid = idM[1], n = parseInt(pagesM[1], 10);
+      const out = [];
+      for (let i = 1; i <= n; i++) {
+        out.push(`https://m10.imhentai.xxx/${dir}/${lid}/${i}.jpg`);
+      }
+      return out;
+    })()
+
+tests:
+  - kind: search
+    query: "test"
+    expect:
+      min_results: 1
+      first_title_contains: ""
+  - kind: chapter_list
+    fixture_id: "1663265"
+    expect:
+      min_results: 1
+  - kind: page_list
+    fixture_id: "1663265"
+    expect:
+      min_pages: 1
+      first_page_url_https: true
