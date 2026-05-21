@@ -1,0 +1,182 @@
+id: tcb_scans
+name: TCB Scans
+version: 1.0.0
+api_version: 1
+homepage: https://tcbonepiecechapters.com
+allowed_domains:
+  - tcbonepiecechapters.com
+  - cdn.onepiecechapters.com
+default_language: en
+nsfw: optional
+description: |
+  Specialist scanlation group that produces the highest-quality
+  weekly English releases for One Piece + a small curated catalog
+  (Jujutsu Kaisen, Bleach, Black Clover, Chainsaw Man, Hunter X
+  Hunter, My Hero Academia, Attack on Titan, etc. — 19 titles
+  total as of registry add).
+
+  One Piece coverage here is **complete from chapter 1 to the
+  current weekly release** (1182+) — TCB backfilled the early
+  catalog from prior scanlation groups so the entire series is
+  readable from this one source. The other titles are in varying
+  states (some complete archives, some recent-only).
+
+  URL shape: titles at `/mangas/<numeric-id>/<slug>`, chapters at
+  `/chapters/<numeric-id>/<slug>` (slug carries trailing
+  `-review-<timestamp>` on backfilled chapters, not on current
+  weeklies). Both ids contain a `/` so `{raw:id}` is required.
+
+  TCB has no search endpoint. The public catalog is the static
+  `/projects` page (19 entries) — every "search" call fetches it
+  and returns the whole catalog. The host app's fuzzy-match scorer
+  (used by the seeder / source-healer / Browse) picks out the
+  right title client-side, so this works fine as a hit-source for
+  "One Piece" queries; the 18 unrelated titles score below the
+  threshold and get dropped.
+
+  Page CDN (`cdn.onepiecechapters.com`) does NOT enforce a Referer
+  hotlink check (verified empirically — both no-Referer and
+  in-domain Referer GET return HTTP 200), so the `image_referer`
+  / `manga-img://` proxy isn't needed.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://tcbonepiecechapters.com/"
+
+preferences:
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# TCB doesn't expose a search endpoint. We fetch the full /projects
+# catalog (HTML, 19 items, cheap) and filter cards by title
+# substring against the user's query inside the field expressions.
+# Filtering at the field level (rather than in `items`) lets us
+# reuse the existing selector pipeline; non-matching items return
+# an empty title which the runtime treats as a skipped hit at
+# fuzzy-score time.
+search:
+  url: "https://tcbonepiecechapters.com/projects?_={query}"
+  response: html
+  items: "div.bg-card.border.border-border"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/href="\/mangas\/(\d+\/[^"]+?)"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<a[^>]*text-lg font-bold[^"]*"[^>]*>([\s\S]*?)<\/a>/);
+        return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/<img[^>]+src="(https:\/\/cdn\.onepiecechapters\.com\/file\/[^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Manga details — same /mangas/<id>/<slug> page the chapter list
+# uses. Title sits in the page header; description is rarely
+# populated by TCB so we fall back to a generic blurb so the row
+# isn't empty in the detail screen.
+manga_details:
+  url: "https://tcbonepiecechapters.com/mangas/{raw:id}?_={id}"
+  response: html
+  fields:
+    title: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/);
+        if (m) {
+          const t = m[1].replace(/<[^>]+>/g, '').trim();
+          if (t) return t;
+        }
+        const og = html.match(/<meta property="og:title" content="([^"]+?)\s*\|\s*TCB Scans"/);
+        return og ? og[1].trim() : '';
+      })()
+    description: |
+      (function(){
+        // TCB's /mangas pages don't carry per-title synopses — the
+        // page jumps straight from header to chapter list. Surface
+        // a uniform note so the detail screen doesn't show blank.
+        return 'TCB Scans weekly release archive.';
+      })()
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        // First CDN image on the page is the title's cover row.
+        const m = html.match(/<img[^>]+src="(https:\/\/cdn\.onepiecechapters\.com\/file\/CDN-M-A-N\/[^"]+)"[^>]*class="[^"]*w-24[^"]*"/);
+        if (m) return m[1].trim();
+        // Fallback: any /file/ image other than the sticky ad banner.
+        const all = [...html.matchAll(/<img[^>]+src="(https:\/\/cdn\.onepiecechapters\.com\/file\/[^"]+)"/g)];
+        for (const x of all) {
+          if (!x[1].includes('banner') && !x[1].includes('halfpage')) return x[1].trim();
+        }
+        return '';
+      })()
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Chapter list lives in the same /mangas/<id>/<slug> page. Each row
+# is `<a class="block border border-border bg-card mb-3 p-3 rounded"
+#       href="/chapters/<id>/<slug>">...</a>`. The id segment is
+# `<numeric-id>/<slug>`, same composite-id shape as the manga itself.
+chapter_list:
+  url: "https://tcbonepiecechapters.com/mangas/{raw:id}?_={id}"
+  response: html
+  items: "a.block.border.border-border.bg-card"
+  fields:
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        const m = href.match(/\/chapters\/(\d+\/[^"\/?#]+)/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const html = item.html || '';
+        const m = html.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        // Subtitle ("Zaza", "A God and A Devil", etc.) lives in the
+        // text-gray-500 div below the chapter number. Empty when
+        // the chapter has no subtitle (early chapters).
+        const m = html.match(/<div class="text-gray-500">([\s\S]*?)<\/div>/);
+        return m ? m[1].replace(/<[^>]+>/g, '').trim() : '';
+      })()
+    published_at: "(null)"
+    scanlator: "('TCB Scans')"
+
+# Page list. Reader at /chapters/<compound-id>/<slug> emits every
+# page as `<img class="fixed-ratio-content" src="https://cdn.onepiecechapters.com/...">`.
+# Eagerly loaded — no data-src.
+page_list:
+  url: "https://tcbonepiecechapters.com/chapters/{raw:id}?_={id}"
+  response: html
+  pages: "img.fixed-ratio-content@src"
+
+tests:
+  - kind: search
+    query: "one piece"
+    expect:
+      min_results: 1
+      first_title_contains: "One Piece"
+  - kind: chapter_list
+    fixture_id: "5/one-piece"
+    expect:
+      min_results: 1000
+  - kind: page_list
+    fixture_id: "7981/one-piece-chapter-1182"
+    expect:
+      min_pages: 10
+      first_page_url_https: true

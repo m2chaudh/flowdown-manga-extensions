@@ -260,6 +260,19 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/imhentai.yaml",
       "icon_url": "",
       "sha256": "85ed26c574b5a2793846b8b034f4da0e34388f379c7e21e1eb578fe5badf1a7b"
+    },
+    {
+      "id": "tcb_scans",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "TCB Scans",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Specialist scanlation group \u2014 weekly One Piece releases (complete archive ch 1\u20131182+) plus 18 other Shonen Jump titles (Jujutsu Kaisen, Bleach, Black Clover, Chainsaw Man, Hunter X Hunter, My Hero Academia, Attack on Titan, etc.). No search endpoint; catalog is the static /projects page, fetched per search and filtered client-side by the host's fuzzy scorer.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/tcb_scans.yaml",
+      "icon_url": "",
+      "sha256": "1f03bd1c2853402a5bb7b6d768436596955e17febc1dc5a61d2a111663be274e"
     }
   ]
 }
