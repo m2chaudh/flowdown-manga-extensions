@@ -1,6 +1,6 @@
 id: toonily
 name: Toonily
-version: 1.0.0
+version: 1.1.0
 api_version: 1
 homepage: https://toonily.com
 image_referer: "https://toonily.com"
@@ -28,10 +28,26 @@ description: |
   here — there is no clean way to filter adult titles out of Toonily's
   search results, so the entire catalog is always returned.
 
-# Routing through reqwest hits a 403 Cloudflare challenge immediately. Opting
-# into the browser session lets the runtime navigate the hidden WebView to
-# the homepage first (warmup), then issue every JSON/HTML fetch from inside
-# that same WebView context so the Turnstile clearance cookie travels along.
+# Routing through plain Dio hits a 403 Cloudflare challenge immediately.
+# v1.1 opts into `fetch_strategy: webview_proxied` — the host runtime
+# routes every fetch through a headless WebView that solves CF's JS
+# challenge organically (real browser engine, real cookies). The prior
+# v1.0 `needs_browser_session` mechanism was a stub on both desktop
+# and mobile (desktop returned a hard error; mobile silently ignored
+# the field) so v1.0 was effectively dead on arrival for any reader.
+fetch_strategy: webview_proxied
+user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+cookie_domains:
+  - .toonily.com
+challenge_markers:
+  # The Madara "page-item-detail.manga" card class appears only on the
+  # real listing page, never on Cloudflare's interstitial. When the
+  # resolver sees this selector hit, CF is done. The homepage carries
+  # the same class so warmup navigation also clears it.
+  ready_selector: "div.page-item-detail, div.c-page__content, footer"
+
+# Legacy fields preserved for any old code path that might still read
+# them — both are no-ops with the v1.1 fetch_strategy in effect.
 needs_browser_session: true
 session:
   warmup_url: "https://toonily.com/"
