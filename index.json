@@ -275,6 +275,19 @@
       "sha256": "357343d28cc276a92df29bc5fd03bfc2af2656a94d05d57612c956689a565fae"
     },
     {
+      "id": "manhuaplus",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "ManhuaPlus",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Chinese manhua aggregator (xianxia / wuxia / cultivation) on the Madara WordPress theme. Long-backlog catalog — Martial Peak alone is 3000+ chapters; complements ManhuaScan's similar but shallower coverage. Direct-Dio path works with a pinned Chrome User-Agent (no Cloudflare gate). URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhuaplus.yaml",
+      "icon_url": "",
+      "sha256": "a9bc1c27122d1edb74f1b0977a4c6bad9022f17a85f5208da06047ed0dcba9c1"
+    },
+    {
       "id": "mangaclash",
       "version": "1.0.0",
       "api_version": 1,

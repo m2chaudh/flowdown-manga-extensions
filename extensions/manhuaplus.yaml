@@ -1,0 +1,145 @@
+id: manhuaplus
+name: ManhuaPlus
+version: 1.0.0
+api_version: 1
+homepage: https://manhuaplus.com
+image_referer: "https://manhuaplus.com"
+allowed_domains:
+  - manhuaplus.com
+default_language: en
+nsfw: optional
+description: |
+  Chinese manhua (xianxia / cultivation / wuxia) aggregator on the
+  Madara WordPress theme. Catalog skews heavily toward long-running
+  cultivation series (Martial Peak 3000+ chapters, Global Martial
+  Arts, Apotheosis, etc.) — exactly the segment ManhuaScan covers
+  but with a deeper backlog.
+
+  Direct-Dio path works (no Cloudflare gate); a pinned Chrome UA is
+  enough. URL shape `/manga/<slug>/` for details and
+  `/manga/<slug>/chapter-N/` for the reader.
+
+# Direct-Dio path. Site responds 200 to plain curl with a Chrome UA.
+# No Cloudflare wall, no admin-ajax / popunder shenanigans observed
+# in spot-checks. UA-pinning is still required because the runtime's
+# default Dio UA would trip Madara's stock bot-protection filter.
+user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://manhuaplus.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Madara stock search form. Cards sit inside the same
+# `div.row.c-tabs-item__content` wrapper MangaClash uses.
+search:
+  url: "https://manhuaplus.com/?s={query}&post_type=wp-manga"
+  response: html
+  items: "div.c-tabs-item__content"
+  fields:
+    id: |
+      (function(){
+        const m = (item.html.match(/href="https?:\/\/[^"\/]+\/manga\/([^"\/]+)\//) || [])[1];
+        return m || '';
+      })()
+    title: ".post-title h3 a, .post-title h5 a, .post-title a"
+    cover_url: |
+      (function(){
+        const m = item.html.match(/<img[^>]+data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = item.html.match(/<img[^>]+src="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+manga_details:
+  url: "https://manhuaplus.com/manga/{id}/"
+  response: html
+  fields:
+    title: ".post-title h1, .post-title h3"
+    description: ".summary__content, div.description-summary div.summary__content"
+    cover_url: ".summary_image img@abs:src"
+    authors: ".author-content"
+    status: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<h5>\s*Status\s*<\/h5>\s*<\/div>\s*<div class="summary-content">\s*([^<]+)/i);
+        if (!m) return 'ongoing';
+        const s = m[1].trim().toLowerCase();
+        if (s.startsWith('completed') || s.startsWith('finished')) return 'completed';
+        if (s.startsWith('hiatus') || s.startsWith('on hold')) return 'hiatus';
+        if (s.startsWith('cancel') || s.startsWith('dropped')) return 'cancelled';
+        return 'ongoing';
+      })()
+
+chapter_list:
+  url: "https://manhuaplus.com/manga/{id}/"
+  response: html
+  items: "li.wp-manga-chapter"
+  fields:
+    id: |
+      (function(){
+        const m = (item.html.match(/href="https?:\/\/[^"\/]+\/manga\/([^"]+?)\/?"/));
+        return m ? m[1].replace(/\/?$/, '') : '';
+      })()
+    number: |
+      (function(){
+        const t = (item.text || '').trim();
+        const m = t.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : t.split('\n')[0].trim();
+      })()
+    title: "a"
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        const t = html.match(/<time[^>]+datetime="([^"]+)"/);
+        if (t) {
+          const ts = Date.parse(t[1]);
+          return isFinite(ts) ? Math.floor(ts / 1000) : null;
+        }
+        const m = html.match(/<span class="chapter-release-date">\s*<i>([^<]+)<\/i>/);
+        if (!m) return null;
+        let s = m[1].trim();
+        const ymatch = s.match(/^(\w+ \d+),\s*(\d{2})$/);
+        if (ymatch) s = ymatch[1] + ', 20' + ymatch[2];
+        const ts = Date.parse(s);
+        return isFinite(ts) ? Math.floor(ts / 1000) : null;
+      })()
+    scanlator: "(null)"
+
+page_list:
+  url: "https://manhuaplus.com/manga/{raw:id}/?_={id}"
+  response: html
+  # ManhuaPlus deviates from Madara's stock reader markup: there is no
+  # `wp-manga-chapter-img` class, no lazy `data-src` placeholder. Pages
+  # are plain `<img src="https://cdn.manhuaplus.com/…">` tags inside a
+  # `<div class="reading-content">` wrapper. The simple CSS-selector
+  # form is faster than a JS extractor here (skips the worker-isolate
+  # hop) and matches all real page images cleanly because ads live
+  # outside the `.reading-content` block.
+  pages: "div.reading-content img@src"
+
+tests:
+  - kind: search
+    query: "martial peak"
+    expect:
+      min_results: 1
+      first_title_contains: "Martial Peak"
+  - kind: chapter_list
+    fixture_id: "martial-peak"
+    expect:
+      min_results: 100
+  - kind: page_list
+    fixture_id: "martial-peak/chapter-1"
+    expect:
+      min_pages: 1
+      first_page_url_https: true
