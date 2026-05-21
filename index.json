@@ -263,16 +263,16 @@
     },
     {
       "id": "toonily",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "Toonily",
       "language": "en",
       "nsfw": "always",
-      "description": "Korean manhwa aggregator (adult-focused) on the Madara WordPress theme. Behind Cloudflare. Uses fetch_strategy: webview_proxied with og:locale ready-marker for reliable CF discrimination. v1.1.2 fixed in tandem with mobile resolver fix that was returning empty about:blank documents before navigation completed.",
+      "description": "Korean manhwa aggregator (adult-focused) on the Madara WordPress theme. Behind Cloudflare. Mobile uses fetch_strategy: webview_proxied with the og:locale ready-marker; desktop's reqwest+rustls TLS fingerprint passes CF directly with a pinned Chrome UA, so no WebView is needed there. v1.1.3 strips the legacy `needs_browser_session: true` flag that was hard-bailing desktop's CfBypass stub before any fetch ran, leaving Toonily unusable on desktop even though the network path worked.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/toonily.yaml",
       "icon_url": "",
-      "sha256": "357343d28cc276a92df29bc5fd03bfc2af2656a94d05d57612c956689a565fae"
+      "sha256": "7e0680e2e1b20849e4cb186594018ff738959ec8332ecc19d5831529fc26a867"
     },
     {
       "id": "manhuaplus",

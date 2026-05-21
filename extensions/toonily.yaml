@@ -1,6 +1,6 @@
 id: toonily
 name: Toonily
-version: 1.1.2
+version: 1.1.3
 api_version: 1
 homepage: https://toonily.com
 image_referer: "https://toonily.com"
@@ -16,25 +16,31 @@ description: |
   English manhwa aggregator (Korean comics). Large catalog of Korean / Chinese
   webcomics with heavy adult content. Built on the Madara WordPress theme.
 
-  Toonily sits behind Cloudflare Turnstile, so this extension opts into
-  needs_browser_session — the runtime routes every HTTP request through a
-  hidden WebView that can pass the JS challenge. On first launch FlowDown
-  warms up the session against the landing page; subsequent fetches reuse
-  the same browser cookies.
+  Toonily sits behind Cloudflare. Two runtimes reach the real markup along
+  different paths:
 
-  An age-gate cookie (`toonily-mature=1`) is set automatically by the
-  warmed-up WebView once it navigates to toonily.com. The `include_nsfw`
-  preference is accepted for consistency with other sources but is a no-op
-  here — there is no clean way to filter adult titles out of Toonily's
-  search results, so the entire catalog is always returned.
+    - Mobile (Dart/Dio) trips CF's TLS/UA fingerprinting and gets 403, so
+      the manifest opts into `fetch_strategy: webview_proxied` and the
+      mobile runtime routes every fetch through a hidden WebView that
+      passes the challenge organically.
 
-# Routing through plain Dio hits a 403 Cloudflare challenge immediately.
-# v1.1 opts into `fetch_strategy: webview_proxied` — the host runtime
-# routes every fetch through a headless WebView that solves CF's JS
-# challenge organically (real browser engine, real cookies). The prior
-# v1.0 `needs_browser_session` mechanism was a stub on both desktop
-# and mobile (desktop returned a hard error; mobile silently ignored
-# the field) so v1.0 was effectively dead on arrival for any reader.
+    - Desktop (Rust/reqwest+rustls) has a different TLS fingerprint that
+      CF lets through on a pinned Chrome UA + Referer — verified live via
+      `cargo run --example check_manga_sources`. Direct fetch returns 145+
+      chapters and 14 pages for "Player Who Can't Level Up". No WebView
+      required.
+
+  An age-gate cookie (`toonily-mature=1`) is supplied via `default_headers`
+  on the desktop path and is set by the WebView session on the mobile path.
+  The `include_nsfw` preference is accepted for consistency with other
+  sources but is a no-op here — there's no clean way to filter adult
+  titles out of Toonily's search results, so the entire catalog always
+  returns.
+
+# Mobile runtime opt-in: route through the headless WebView resolver so
+# CF's TLS-fingerprint check is satisfied by a real browser engine.
+# Desktop's runtime ignores this field (it doesn't have a WebView resolver)
+# and falls back to reqwest, which CF accepts here.
 fetch_strategy: webview_proxied
 user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 cookie_domains:
@@ -49,13 +55,12 @@ challenge_markers:
   # so this discriminates the real page from the challenge.
   ready_selector: "meta[property='og:locale']"
 
-# Legacy fields preserved for any old code path that might still read
-# them — both are no-ops with the v1.1 fetch_strategy in effect.
-needs_browser_session: true
-session:
-  warmup_url: "https://toonily.com/"
-  ttl_minutes: 30
-  visible_on_challenge: true
+# v1.1.3: stripped `needs_browser_session: true` and the `session:` block.
+# That legacy flag hard-bailed on desktop's CfBypass stub before any fetch
+# ran, which meant Toonily was completely unusable on desktop even though
+# the actual network path works there. Mobile silently ignored these
+# fields anyway (it routes via `fetch_strategy: webview_proxied`), so
+# dropping them is purely additive for desktop and a no-op for mobile.
 
 default_headers:
   User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
