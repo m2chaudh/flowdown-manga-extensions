@@ -263,16 +263,16 @@
     },
     {
       "id": "toonily",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "Toonily",
       "language": "en",
       "nsfw": "always",
-      "description": "Korean manhwa aggregator (adult-focused) on the Madara WordPress theme. Behind Cloudflare. v1.1 opts into `fetch_strategy: webview_proxied` — the host runtime's headless WebView resolver navigates CF's JS challenge organically. First request takes ~5-10s while CF clears; subsequent requests in the same app session reuse the resolved browser.",
+      "description": "Korean manhwa aggregator (adult-focused) on the Madara WordPress theme. Behind Cloudflare. v1.1 opts into `fetch_strategy: webview_proxied` — the host runtime's headless WebView resolver navigates CF's JS challenge organically. v1.1.1 widens the ready_selector so empty-result searches no longer time out.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/toonily.yaml",
       "icon_url": "",
-      "sha256": "c64f1201c908323908d66ef0e98ed6fd21908e7294334dc7556290aa2f9a60fa"
+      "sha256": "77c89ff6096b048f571cf012113eb6a590147b0f330d3220895334facd577ca4"
     },
     {
       "id": "tcb_scans",

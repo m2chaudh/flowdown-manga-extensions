@@ -1,6 +1,6 @@
 id: toonily
 name: Toonily
-version: 1.1.0
+version: 1.1.1
 api_version: 1
 homepage: https://toonily.com
 image_referer: "https://toonily.com"
@@ -40,11 +40,15 @@ user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 
 cookie_domains:
   - .toonily.com
 challenge_markers:
-  # The Madara "page-item-detail.manga" card class appears only on the
-  # real listing page, never on Cloudflare's interstitial. When the
-  # resolver sees this selector hit, CF is done. The homepage carries
-  # the same class so warmup navigation also clears it.
-  ready_selector: "div.page-item-detail, div.c-page__content, footer"
+  # Toonily uses the Madara WordPress theme. WordPress always emits
+  # a `<link rel="https://api.w.org/">` discovery tag in the head;
+  # Cloudflare's JS-challenge interstitial does not. Matching this
+  # is search-result-agnostic (works for empty result pages too,
+  # unlike `.page-item-detail` which only renders when there are
+  # hits) and theme-agnostic (works on any WP site we add later).
+  # v1.1.0's selector was too narrow — a "no hits" search would
+  # never match it and timed out at 30s.
+  ready_selector: "link[rel*='api.w.org']"
 
 # Legacy fields preserved for any old code path that might still read
 # them — both are no-ops with the v1.1 fetch_strategy in effect.
