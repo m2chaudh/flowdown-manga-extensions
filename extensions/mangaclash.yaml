@@ -1,0 +1,189 @@
+id: mangaclash
+name: MangaClash
+version: 1.0.0
+api_version: 1
+homepage: https://mangaclash.com
+image_referer: "https://mangaclash.com"
+allowed_domains:
+  - mangaclash.com
+  # Page CDN observed during integration testing was cdn4.mangaclash.com;
+  # Madara hosts commonly rotate across cdn1..cdn9 so we list them all
+  # for documentation. The field is informational (the runtime doesn't
+  # currently enforce a domain allowlist) but kept in sync for future
+  # hardening passes.
+  - cdn1.mangaclash.com
+  - cdn2.mangaclash.com
+  - cdn3.mangaclash.com
+  - cdn4.mangaclash.com
+  - cdn5.mangaclash.com
+default_language: en
+nsfw: optional
+description: |
+  Mainstream English-language manga aggregator on the Madara WordPress
+  theme. Mid-sized SFW-leaning catalog (One Piece, Naruto, Boruto,
+  Tower of God, …). Sits behind Cloudflare with a hard
+  "you have been blocked" wall for direct fetches — the WebView path
+  reaches the real markup organically with a real Chrome fingerprint.
+
+# mangaclash.com 403s every direct curl/Dio request (including with a
+# pinned Chrome User-Agent) with a "Sorry, you have been blocked" page
+# rather than the usual JS-challenge interstitial. WebView through real
+# Android Chrome reaches Yoast SEO Premium / Madara markup cleanly
+# (~230 KB homepage), so the same fetch_strategy: webview_proxied
+# arrangement that Toonily uses works here verbatim.
+fetch_strategy: webview_proxied
+user_agent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"
+cookie_domains:
+  - .mangaclash.com
+challenge_markers:
+  # MangaClash runs Yoast SEO Premium — every real page (homepage,
+  # search results, manga details, chapter reader) emits a
+  # <meta property="og:locale" content="en_US"> tag in <head>. The CF
+  # block page does not. Same discriminator that worked for Toonily.
+  ready_selector: "meta[property='og:locale']"
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"
+  Referer: "https://mangaclash.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+# Madara stock search: `/?s=<query>&post_type=wp-manga`. Result cards
+# sit inside <div class="c-tabs-item__content"> (Madara's search-page
+# wrapper) — distinct from the homepage browse layout (which uses
+# `div.page-item-detail.manga` like Toonily). The anchor inside
+# carries the canonical /manga/<slug>/ URL we use as the id.
+search:
+  url: "https://mangaclash.com/?s={query}&post_type=wp-manga"
+  response: html
+  items: "div.c-tabs-item__content"
+  fields:
+    id: |
+      (function(){
+        const m = (item.html.match(/href="https?:\/\/[^"\/]+\/manga\/([^"\/]+)\//) || [])[1];
+        return m || '';
+      })()
+    title: ".post-title h3 a, .post-title h5 a, .post-title a"
+    cover_url: |
+      (function(){
+        const m = item.html.match(/<img[^>]+data-src="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = item.html.match(/<img[^>]+src="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
+        return m2 ? m2[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: "(null)"
+    status: "('ongoing')"
+
+# Manga details + chapter list both live on /manga/<slug>/. Madara
+# default selectors apply.
+manga_details:
+  url: "https://mangaclash.com/manga/{id}/"
+  response: html
+  fields:
+    title: ".post-title h1, .post-title h3"
+    description: ".summary__content, div.description-summary div.summary__content"
+    cover_url: ".summary_image img@abs:src"
+    authors: ".author-content"
+    status: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/<h5>\s*Status\s*<\/h5>\s*<\/div>\s*<div class="summary-content">\s*([^<]+)/i);
+        if (!m) return 'ongoing';
+        const s = m[1].trim().toLowerCase();
+        if (s.startsWith('completed') || s.startsWith('finished')) return 'completed';
+        if (s.startsWith('hiatus') || s.startsWith('on hold')) return 'hiatus';
+        if (s.startsWith('cancel') || s.startsWith('dropped')) return 'cancelled';
+        return 'ongoing';
+      })()
+
+chapter_list:
+  url: "https://mangaclash.com/manga/{id}/"
+  response: html
+  items: "li.wp-manga-chapter"
+  fields:
+    id: |
+      (function(){
+        // Anchor inside each chapter <li>; extract everything after
+        // /manga/ as the composite id (`<manga-slug>/<chapter-slug>`).
+        // The chapter URL shape is /manga/<slug>/chapter-N/ or
+        // /manga/<slug>/chapter-N-1/ etc.
+        const m = (item.html.match(/href="https?:\/\/[^"\/]+\/manga\/([^"]+?)\/?"/));
+        return m ? m[1].replace(/\/?$/, '') : '';
+      })()
+    number: |
+      (function(){
+        const t = (item.text || '').trim();
+        const m = t.match(/Chapter\s+([\d.]+)/i);
+        return m ? m[1] : t.split('\n')[0].trim();
+      })()
+    title: "a"
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        // Madara emits either an <i> with "Mon d, yy" (older themes)
+        // or an <a>/<span> with the same. Some skins use HTML5 <time>
+        // — match either.
+        const t = html.match(/<time[^>]+datetime="([^"]+)"/);
+        if (t) {
+          const ts = Date.parse(t[1]);
+          return isFinite(ts) ? Math.floor(ts / 1000) : null;
+        }
+        const m = html.match(/<span class="chapter-release-date">\s*<i>([^<]+)<\/i>/);
+        if (!m) return null;
+        let s = m[1].trim();
+        const ymatch = s.match(/^(\w+ \d+),\s*(\d{2})$/);
+        if (ymatch) s = ymatch[1] + ', 20' + ymatch[2];
+        const ts = Date.parse(s);
+        return isFinite(ts) ? Math.floor(ts / 1000) : null;
+      })()
+    scanlator: "(null)"
+
+# Madara reader: `/manga/<slug>/chapter-N/` (or `/?style=list`).
+# Pages are <img class="wp-manga-chapter-img"> with lazy-load `data-src`
+# carrying the real CDN URL and `src` holding a placeholder. Identical
+# pattern to Toonily — same JS walker.
+page_list:
+  url: "https://mangaclash.com/manga/{raw:id}/?_={id}"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      const urls = [];
+      const re = /<img[^>]+class="[^"]*wp-manga-chapter-img[^"]*"[^>]*>/g;
+      let m;
+      while ((m = re.exec(html)) !== null) {
+        const tag = m[0];
+        const ds = tag.match(/data-src="([^"]+)"/);
+        const src = tag.match(/\ssrc="([^"]+)"/);
+        let url = ds ? ds[1] : (src ? src[1] : '');
+        url = (url || '').trim();
+        if (!url) continue;
+        if (/\/default\.(jpg|png|webp)$/i.test(url)) continue;
+        if (url.startsWith('data:')) continue;
+        urls.push(url);
+      }
+      return urls;
+    })()
+
+tests:
+  - kind: search
+    query: "tower of god"
+    expect:
+      min_results: 1
+      first_title_contains: "Tower"
+  - kind: chapter_list
+    fixture_id: "tower-of-god"
+    expect:
+      min_results: 10
+  - kind: page_list
+    fixture_id: "tower-of-god/chapter-1"
+    expect:
+      min_pages: 1
+      first_page_url_https: true
