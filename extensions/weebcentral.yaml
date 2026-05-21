@@ -1,6 +1,6 @@
 id: weebcentral
 name: WeebCentral
-version: 0.1.0
+version: 0.1.2
 api_version: 1
 homepage: https://weebcentral.com
 image_referer: "https://weebcentral.com"
@@ -10,6 +10,14 @@ allowed_domains:
   - scans-hot.planeptune.us
 default_language: en
 nsfw: optional
+
+# WeebCentral 403s any request whose User-Agent looks like a Dart/Dio
+# default ("Dart/3.x (dart:io)"). The `default_headers` block below is
+# present for documentation purposes but is NOT consumed by the runtime
+# — only this top-level `user_agent` is. Without it, every search /
+# chapter-list / page-list call from a real device hits a 403 wall
+# even though the site is not Cloudflare-gated.
+user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 description: |
   Mainstream English-translated manga aggregator. Spiritual successor to
   Mangasee / Manga4Life (the original devs migrated here when those sites
@@ -43,12 +51,15 @@ preferences:
     default: false
 
 # Search hits the HTMX data endpoint directly. Each result is a top-level
-# <article> with an anchor whose href is the series URL containing the
-# stable ULID we use as the id.
+# <article class="bg-base-300 ..."> with an anchor whose href is the
+# series URL containing the stable ULID we use as the id. The class
+# guard is required because each card also contains a *nested* <article>
+# wrapping the cover <picture>; a bare `article` selector would double
+# every hit and emit cards with empty ids.
 search:
   url: "https://weebcentral.com/search/data?author=&text={query}&sort=Best+Match&order=Descending&official=Any&anime=Any&adult=Any&display_mode=Full+Display&limit=24&offset=0"
   response: html
-  items: "article"
+  items: "article.bg-base-300"
   fields:
     id: |
       (function(){
@@ -111,8 +122,11 @@ chapter_list:
   fields:
     id: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
-        const m = href.match(/\/chapters\/([0-9A-Z]+)/);
+        // The runtime only binds {html, text, base_url} to item — there
+        // is no item.attrs. Reach into item.html (the anchor's outerHtml,
+        // including its own opening tag) and regex out the chapter ULID.
+        const html = item.html || '';
+        const m = html.match(/\/chapters\/([0-9A-Z]+)/);
         return m ? m[1] : '';
       })()
     number: |
@@ -129,19 +143,31 @@ chapter_list:
       })()
     published_at: |
       (function(){
+        // Each chapter row is the inner <a href="…/chapters/<ULID>">; the
+        // `checkNewChapter('…')` Alpine.js call sits on the *parent*
+        // <div x-data="…">, which is outside `item.html`. Reach for the
+        // <time datetime="…ISO8601…"> element, which DOES live inside
+        // the anchor (right before </a>).
         const html = item.html || '';
-        const m = html.match(/checkNewChapter\('([^']+)'\)/);
+        const m = html.match(/<time[^>]+datetime="([^"]+)"/);
         if (!m) return null;
         const ts = Date.parse(m[1]);
         return isFinite(ts) ? Math.floor(ts / 1000) : null;
       })()
     scanlator: "(null)"
 
-# Reader fragment. Long-strip mode returns every page <img src> in one HTML.
+# Reader fragment. Long-strip mode returns every page <img src> in one
+# <section>. The previous comma-grouped form
+# `"section img[alt='Page']@src, section img@src"` looked redundant
+# but was actually unparseable: the spec parser splits on the LAST `@`,
+# leaving `section img[alt='Page']@src, section img` in the selector
+# half — invalid CSS, zero pages. A single `section img@src` matches
+# all 51 page <img>s cleanly (alt is `Page 1`, `Page 2`, …, so an
+# exact `[alt='Page']` match would have missed every one anyway).
 page_list:
   url: "https://weebcentral.com/chapters/{id}/images?is_prev=False&current_page=1&reading_style=long_strip&_={id}"
   response: html
-  pages: "section img[alt='Page']@src, section img@src"
+  pages: "section img@src"
 
 tests:
   - kind: search

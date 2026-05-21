@@ -185,16 +185,16 @@
     },
     {
       "id": "weebcentral",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "WeebCentral",
       "language": "en",
       "nsfw": "optional",
-      "description": "Mangasee/Manga4Life's official successor (rebranded Jan 2025). Massive shounen-leaning catalog; HTMX endpoints return clean parseable HTML with no JS hydration step. CDN scans-hot.planeptune.us.",
+      "description": "Mangasee/Manga4Life's official successor (rebranded Jan 2025). Massive shounen-leaning catalog; HTMX endpoints return clean parseable HTML with no JS hydration step. CDN scans-hot.planeptune.us. v0.1.2 fixes five silent bugs: WeebCentral 403s default Dart/Dio UAs and the runtime ignores `default_headers`, so a top-level `user_agent` is now declared; bare `article` items selector was double-matching (outer card + nested cover wrapper); chapter_list id reached for `item.attrs.href` which the runtime doesn't bind, dropping every chapter; published_at regex targeted `checkNewChapter()` on the parent div which sits outside the anchor item; page_list used a comma-grouped `@attr` selector that the spec parser leaves unparseable.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/weebcentral.yaml",
       "icon_url": "",
-      "sha256": "72fcda9d65086cd15c9b3434889a808fbe71a772b63b02195c6acd88705c49d9"
+      "sha256": "0ce2b814af941a5df95142eb36aa498b2205a8cf4fa3c66fa2cb2725f03f404d"
     },
     {
       "id": "dynasty_scans",
