@@ -1,6 +1,6 @@
 id: imhentai
 name: ImHentai
-version: 0.1.1
+version: 0.1.2
 api_version: 1
 homepage: https://imhentai.xxx
 image_referer: "https://imhentai.xxx"
@@ -118,7 +118,13 @@ page_list:
   response: html
   pages: |
     (function(){
-      const html = response.html || '';
+      // v0.1.2: read from response.raw (the original fetched body)
+      // instead of response.html (scraper-reserialized). html5ever
+      // was occasionally dropping the value="…" attribute from the
+      // load_id hidden input during re-serialization, which made the
+      // regex fail and we'd ship 0 pages. The raw body keeps every
+      // attribute the upstream sent.
+      const html = response.raw || response.html || '';
       const dirM   = html.match(/name="load_dir"[^>]+value="([^"]+)"/);
       const idM    = html.match(/name="load_id"[^>]+value="([^"]+)"/);
       const pagesM = html.match(/name="load_pages"[^>]+value="(\d+)"/);

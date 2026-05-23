@@ -1,6 +1,6 @@
 id: hentaifox
 name: HentaiFox
-version: 0.1.1
+version: 0.1.2
 api_version: 1
 homepage: https://hentaifox.com
 image_referer: "https://hentaifox.com"
@@ -126,7 +126,13 @@ page_list:
   response: html
   pages: |
     (function(){
-      const html = response.html || '';
+      // v0.1.2: read response.raw (original fetched body) instead of
+      // response.html (scraper-reserialized). html5ever's reserialize
+      // path sometimes drops the value="…" attribute from these
+      // hidden inputs (verified on sister site imhentai), making the
+      // regex fail and shipping 0 pages. The raw body preserves
+      // every attribute the upstream sent.
+      const html = response.raw || response.html || '';
       const dirM   = html.match(/name="load_dir"[^>]+value="([^"]+)"/);
       const idM    = html.match(/name="load_id"[^>]+value="([^"]+)"/);
       const pagesM = html.match(/name="load_pages"[^>]+value="(\d+)"/);

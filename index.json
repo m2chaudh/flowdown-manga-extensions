@@ -237,29 +237,29 @@
     },
     {
       "id": "hentaifox",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "HentaiFox",
       "language": "en",
       "nsfw": "always",
-      "description": "Japanese-origin doujinshi gallery \u2014 fills the JP gap in the existing adult bucket (which is otherwise all Korean manhwa). Pages built deterministically from load_dir / load_id / load_pages hidden inputs. v0.1.1: Chapter_list id field now reads response.base_url (the field actually exposed in the runtime binding) instead of response.url (undefined), which was returning '' for every row and tripping the empty-id drop guard.",
+      "description": "Japanese-origin doujinshi gallery \u2014 fills the JP gap in the existing adult bucket (which is otherwise all Korean manhwa). Pages built deterministically from load_dir / load_id / load_pages hidden inputs. v0.1.1: Chapter_list id field now reads response.base_url (the field actually exposed in the runtime binding) instead of response.url (undefined), which was returning '' for every row and tripping the empty-id drop guard. v0.1.2: page_list regex switched from response.html (scraper-reserialized, sometimes drops value attrs on hidden inputs) to response.raw (original fetched body).",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/hentaifox.yaml",
       "icon_url": "",
-      "sha256": "2da722e73d194e1ab98997fcaae324df25afe53b30c58ec3c8bac2ee03c03941"
+      "sha256": "bc3c98e1f6a2d7009b75a69be2c0d9e5be2a4621e1acf80dc27943df008226d0"
     },
     {
       "id": "imhentai",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "ImHentai",
       "language": "en",
       "nsfw": "always",
-      "description": "Sister host to HentaiFox with meaningfully different catalog \u2014 Western porn comics, 3D, Chinese doujin. Same engine but uses an alphanumeric load_id for CDN path resolution. v0.1.1: Same chapter_list response.url \u2192 response.base_url fix as hentaifox v0.1.1 (sister site, identical scrape pattern).",
+      "description": "Sister host to HentaiFox with meaningfully different catalog \u2014 Western porn comics, 3D, Chinese doujin. Same engine but uses an alphanumeric load_id for CDN path resolution. v0.1.1: Same chapter_list response.url \u2192 response.base_url fix as hentaifox v0.1.1 (sister site, identical scrape pattern). v0.1.2: page_list regex switched from response.html (scraper-reserialized, sometimes drops value attrs on hidden inputs) to response.raw (original fetched body).",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/imhentai.yaml",
       "icon_url": "",
-      "sha256": "7aae75fc420eb313e45ffb567392ffdcaea2583d34c7960c9ae352f7d9ef4ba5"
+      "sha256": "704721881a3ef0a97d58f57ef4ef33942cca8d1cd3a0fc8eea07a749cb5fd64f"
     },
     {
       "id": "toonily",
