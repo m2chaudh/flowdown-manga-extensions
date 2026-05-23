@@ -3,16 +3,16 @@
   "extensions": [
     {
       "id": "mangadex",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaDex",
       "language": "en",
       "nsfw": "optional",
-      "description": "Open scanlation catalog, ~80k titles. Stable JSON API. v1.1 adds chapter_count + tags in search hits for client-side filtering.",
+      "description": "Open scanlation catalog, ~80k titles. Stable JSON API. v1.1.1 swaps the chapter_list smoke fixture from Komi Can't Communicate (which lost ~497 of 500 EN chapters to licensing takedowns and broke installs/updates) to Berserk, which has ~500 EN chapters and is resilient to scanlation-group churn. v1.1.0 added chapter_count + tags in search hits for client-side filtering.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangadex.yaml",
       "icon_url": "",
-      "sha256": "6cdfeaaa1a63bc5c7bb0c26fca15ff7176272e110e7984e9789d2460772a3460"
+      "sha256": "f3b3c6bfbcf3b75b23225c95a6d114898579c198620cadd8d1c36b199b2dc96e"
     },
     {
       "id": "comick",
@@ -282,7 +282,7 @@
       "name": "ManhuaPlus",
       "language": "en",
       "nsfw": "optional",
-      "description": "Chinese manhua aggregator (xianxia / wuxia / cultivation) on the Madara WordPress theme. Long-backlog catalog — Martial Peak alone is 3000+ chapters; complements ManhuaScan's similar but shallower coverage. Direct-Dio path works with a pinned Chrome User-Agent (no Cloudflare gate). URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw.",
+      "description": "Chinese manhua aggregator (xianxia / wuxia / cultivation) on the Madara WordPress theme. Long-backlog catalog \u2014 Martial Peak alone is 3000+ chapters; complements ManhuaScan's similar but shallower coverage. Direct-Dio path works with a pinned Chrome User-Agent (no Cloudflare gate). URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhuaplus.yaml",
       "icon_url": "",
       "sha256": "a9bc1c27122d1edb74f1b0977a4c6bad9022f17a85f5208da06047ed0dcba9c1"
@@ -295,7 +295,7 @@
       "name": "MangaClash",
       "language": "en",
       "nsfw": "optional",
-      "description": "Mainstream English manga aggregator on the Madara WordPress theme. Mid-sized SFW catalog (Naruto, One Piece, Boruto, Tower of God). Cloudflare-hard-blocked for direct fetches with a 'Sorry, you have been blocked' page (no JS challenge), so the manifest opts into fetch_strategy: webview_proxied — real Android Chrome reaches Yoast/Madara markup organically. URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw to preserve the slash.",
+      "description": "Mainstream English manga aggregator on the Madara WordPress theme. Mid-sized SFW catalog (Naruto, One Piece, Boruto, Tower of God). Cloudflare-hard-blocked for direct fetches with a 'Sorry, you have been blocked' page (no JS challenge), so the manifest opts into fetch_strategy: webview_proxied \u2014 real Android Chrome reaches Yoast/Madara markup organically. URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw to preserve the slash.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangaclash.yaml",
       "icon_url": "",
       "sha256": "c7e5f2ba310d77eb14823f948ce3711b07c2681e21504aff68786371d38b8b30"
@@ -321,7 +321,7 @@
       "name": "MangaFire",
       "language": "en",
       "nsfw": "optional",
-      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected — fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver. Initial draft (v0.1.0), selectors tagged 'verify' need confirmation on first smoke-test run.",
+      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected \u2014 fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver. Initial draft (v0.1.0), selectors tagged 'verify' need confirmation on first smoke-test run.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangafire.yaml",
       "icon_url": "",
       "sha256": "9039495c15f07afea8b6f782aa999791a9fd765a7c9f3fabc63059a6cc1af3e9"
@@ -334,7 +334,7 @@
       "name": "MangaTown",
       "language": "en",
       "nsfw": "optional",
-      "description": "Long-running English aggregator (MangaHere sibling). Plain HTML, no JS hydration on catalog/search/detail. Direct Dio/reqwest fetch — no Cloudflare gate. URL shape /manga/<slug>/ for details, /manga/<slug>/c<NNN>/ for reader. Verified completed runs (e.g. Knights of Sidonia c001–c078). Reader page_list tries inline JS array first, falls back to <img src> scrape.",
+      "description": "Long-running English aggregator (MangaHere sibling). Plain HTML, no JS hydration on catalog/search/detail. Direct Dio/reqwest fetch \u2014 no Cloudflare gate. URL shape /manga/<slug>/ for details, /manga/<slug>/c<NNN>/ for reader. Verified completed runs (e.g. Knights of Sidonia c001\u2013c078). Reader page_list tries inline JS array first, falls back to <img src> scrape.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangatown.yaml",
       "icon_url": "",
       "sha256": "ee02a2beaa748bb6f390a5b88cd9df2d4f551ae8637ad7b06792687b84182907"

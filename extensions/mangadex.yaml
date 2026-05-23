@@ -1,6 +1,6 @@
 id: mangadex
 name: MangaDex
-version: 1.1.0
+version: 1.1.1
 api_version: 1
 homepage: https://mangadex.org
 allowed_domains:
@@ -70,7 +70,13 @@ tests:
     expect:
       min_results: 5
       first_title_contains: "One Piece"
+  # Berserk — completed seinen, ~500 chapters fully available in EN on
+  # MangaDex (resilient to scanlation-group churn and licensing
+  # takedowns that wipe out popular shounen English chapters). The
+  # previous fixture (Komi, a96676e5-...) regressed when only 3 of its
+  # 500 chapters remained in EN post-DMCA, blocking every install +
+  # update of MangaDex.
   - kind: chapter_list
-    fixture_id: "a96676e5-8ae2-425e-b549-7f15dd34a6d8"
+    fixture_id: "801513ba-a712-498c-8f57-cae55b38cc92"
     expect:
       min_results: 100
