@@ -1,6 +1,6 @@
 id: pornhwa18
 name: PornHwa18
-version: 1.0.0
+version: 1.0.1
 api_version: 1
 homepage: https://pornhwa18.com
 image_referer: "https://pornhwa18.com"
@@ -164,14 +164,21 @@ chapter_list:
   fields:
     id: |
       (function(){
+        // Mobile (Dart) runtime binds only {html, text, base_url} on item —
+        // no .attrs. v1.0.1 pulls the href from item.html. The items
+        // selector matches the <a> element itself, so item.html is the
+        // anchor's outerHTML.
         const html = item.html || '';
-        const href = (item.attrs && item.attrs.href) || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/comic\/([^"\/]+\/chapter-[^"\/]+)\/?$/);
         return m ? m[1] : '';
       })()
     number: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/chapter-([\d.]+)\/?$/i);
         return m ? m[1] : '';
       })()

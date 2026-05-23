@@ -1,6 +1,6 @@
 id: manhuascan
 name: ManhuaScan
-version: 0.1.1
+version: 0.1.2
 api_version: 1
 homepage: https://manhuascan.us
 image_referer: "https://manhuascan.us"
@@ -95,13 +95,21 @@ chapter_list:
     # reconstruct the full URL with a single {raw:id} substitution.
     id: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
+        // Mobile (Dart) runtime binds only {html, text, base_url} on item —
+        // no .attrs. v0.1.2 pulls the href from item.html. The items
+        // selector matches the <a> element itself, so item.html is the
+        // anchor's outerHTML.
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/manga\/([^"\/]+\/chapter-[\d.]+)/);
         return m ? m[1] : '';
       })()
     number: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/chapter-([\d.]+)/);
         return m ? m[1] : '';
       })()

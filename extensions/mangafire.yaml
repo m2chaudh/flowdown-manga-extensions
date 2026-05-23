@@ -1,6 +1,6 @@
 id: mangafire
 name: MangaFire
-version: 0.1.0
+version: 0.1.1
 api_version: 1
 homepage: https://mangafire.to
 image_referer: "https://mangafire.to"
@@ -142,8 +142,12 @@ chapter_list:
   fields:
     id: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
-        // /read/<slug>.<short>/<lang>/<chapter-id>
+        // Mobile (Dart) runtime binds only {html, text, base_url} on item —
+        // no .attrs. Pull the anchor's href from item.html so this works
+        // on both runtimes. /read/<slug>.<short>/<lang>/<chapter-id>.
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/read\/[^/]+\/[a-z]{2}\/([^/?#]+)/);
         return m ? m[1] : '';
       })()

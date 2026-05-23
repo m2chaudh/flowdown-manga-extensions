@@ -94,16 +94,16 @@
     },
     {
       "id": "pornhwa18",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "PornHwa18",
       "language": "en",
       "nsfw": "always",
-      "description": "Explicit pornhwa aggregator (pornhwa18.com) built on Qwik SSR \u2014 NOT Madara. All page content is in the server-rendered HTML, so no JS execution is required. URL shape `/comic/<slug>/chapter-N/`; chapter dates are relative (\"1 day ago\") and converted to absolute Unix seconds at scrape time. Entire catalog is 18+.",
+      "description": "Explicit pornhwa aggregator (pornhwa18.com) built on Qwik SSR \u2014 NOT Madara. All page content is in the server-rendered HTML, so no JS execution is required. URL shape `/comic/<slug>/chapter-N/`; chapter dates are relative (\"1 day ago\") and converted to absolute Unix seconds at scrape time. Entire catalog is 18+. v1.0.1: chapter_list id AND number no longer rely on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/pornhwa18.yaml",
       "icon_url": "",
-      "sha256": "b261856e9abd5a4b6a2af18c36a61e9d0f994c4168afea3926cef914c2977fb4"
+      "sha256": "3e7c0065999747f17103213e98ec445092aefaae2020ad42aa86f09bae238119"
     },
     {
       "id": "manhwax",
@@ -133,29 +133,29 @@
     },
     {
       "id": "tcbscans",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "TCB Scans",
       "language": "en",
       "nsfw": "never",
-      "description": "English fan-scanlation group covering One Piece, Jujutsu Kaisen, My Hero Academia, Black Clover, Attack on Titan, Chainsaw Man, and other weekly Shonen Jump series. Small catalog (~15 titles) \u2014 high translation quality. Live host is `tcbonepiecechapters.com`; legacy `tcbscans.com` redirects here. There is no server search endpoint \u2014 Mihon implements it client-side over /projects, and so do we (the {query} placeholder is encoded into a no-op `_q=` param so the URL template validator passes).",
+      "description": "English fan-scanlation group covering One Piece, Jujutsu Kaisen, My Hero Academia, Black Clover, Attack on Titan, Chainsaw Man, and other weekly Shonen Jump series. Small catalog (~15 titles) \u2014 high translation quality. Live host is `tcbonepiecechapters.com`; legacy `tcbscans.com` redirects here. There is no server search endpoint \u2014 Mihon implements it client-side over /projects, and so do we (the {query} placeholder is encoded into a no-op `_q=` param so the URL template validator passes). v1.0.1: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/tcbscans.yaml",
       "icon_url": "",
-      "sha256": "ad0a64695c241e86b437382947aa4f858c117f31deafa0837a199453ebf9276a"
+      "sha256": "12503d25c4c7373b449d04325c0c5b3e08761bd5f451b19bb263457a142c07a6"
     },
     {
       "id": "mangapill",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "Mangapill",
       "language": "en",
       "nsfw": "optional",
-      "description": "Mainstream English manga aggregator with a clean, predictable HTML structure (no client-side hydration). Hosts Naruto, One Piece, Bleach, and most modern series. URL shape `/manga/<id>/<slug>` for details and `/chapters/<id>-<NNNNNN>/<slug>-chapter-N` for reader. Pages served by `cdn.readdetectiveconan.com` and hotlink-protected \u2014 routed through manga-img:// to add the required Referer.",
+      "description": "Mainstream English manga aggregator with a clean, predictable HTML structure (no client-side hydration). Hosts Naruto, One Piece, Bleach, and most modern series. URL shape `/manga/<id>/<slug>` for details and `/chapters/<id>-<NNNNNN>/<slug>-chapter-N` for reader. Pages served by `cdn.readdetectiveconan.com` and hotlink-protected \u2014 routed through manga-img:// to add the required Referer. v1.0.1: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangapill.yaml",
       "icon_url": "",
-      "sha256": "45044429f657218a15e340bcf4ea2722cc037997f26884a5ecf7d2fa275cc292"
+      "sha256": "dad480d235c68f2611e6b509bf02210905b0c5e1173d098e0516b57a52f6dab9"
     },
     {
       "id": "mangaread",
@@ -172,16 +172,16 @@
     },
     {
       "id": "mangakatana",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaKatana",
       "language": "en",
       "nsfw": "optional",
-      "description": "Mainstream English manga aggregator. Large catalog including Naruto, Bleach, Vagabond, and Berserk. Reader uses a JS trick: HTML carries placeholder `<img data-src=\"#\">` tags and the real URLs live in a `var <random>=['url1',\u2026];` inline script. We extract the variable name via Mihon's regex `data-src['\"]?,\\s*(\\w+)` and parse the array. URL shape `/manga/<slug>.<numeric-id>` for details and `/manga/<slug>.<id>/c<N>` for reader. Pages on i1.mangakatana.com \u2014 no hotlink protection.",
+      "description": "Mainstream English manga aggregator. Large catalog including Naruto, Bleach, Vagabond, and Berserk. Reader uses a JS trick: HTML carries placeholder `<img data-src=\"#\">` tags and the real URLs live in a `var <random>=['url1',\u2026];` inline script. We extract the variable name via Mihon's regex `data-src['\"]?,\\s*(\\w+)` and parse the array. URL shape `/manga/<slug>.<numeric-id>` for details and `/manga/<slug>.<id>/c<N>` for reader. Pages on i1.mangakatana.com \u2014 no hotlink protection. v1.0.1: handle single-result 302 redirect (e.g. exact-title queries like \"knights of sidonia\" go straight to /manga/sidonia-no-kishi.2070 instead of returning a list). Items selector now matches div#book_list > div.item OR div#single_book; field extractors fall through to detail-page shape, with the slug recovered from <link rel=\"canonical\"> in response.html.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangakatana.yaml",
       "icon_url": "",
-      "sha256": "7b3551b3fe5874a64539d03084272e7eca63d75919cff6513c1cb1900fda62c9"
+      "sha256": "92d350d9e89375a030a2eafe8e43857dba150cc07b2f9e5d014ec668df200616"
     },
     {
       "id": "weebcentral",
@@ -198,42 +198,42 @@
     },
     {
       "id": "dynasty_scans",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "Dynasty Scans",
       "language": "en",
       "nsfw": "optional",
-      "description": "Long-running yuri / GL / 4-koma / specialty doujinshi archive. Smaller than the mainstream sources but zero overlap with the rest of the registry \u2014 they translate niche material no one else picks up.",
+      "description": "Long-running yuri / GL / 4-koma / specialty doujinshi archive. Smaller than the mainstream sources but zero overlap with the rest of the registry \u2014 they translate niche material no one else picks up. v0.1.1: chapter_list id no longer relies on item.attrs.href (only bound on the desktop Rust runtime, not the Dart mobile runtime \u2014 see WeebCentral v0.1.2 changelog for the same fix pattern). Pulls href from item.html instead so the extension works on both runtimes.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/dynasty_scans.yaml",
       "icon_url": "",
-      "sha256": "1c926c3cdaf183eef63da5d53668ef43ed8b199a5bbdc6d5ac3f1c00cad09c1f"
+      "sha256": "71064aff4ab54251bea57be098149a40673252c13be4e02f65cc14d7e4f0e5e6"
     },
     {
       "id": "hiperdex",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "HiperDex",
       "language": "en",
       "nsfw": "optional",
-      "description": "Madara-themed Korean manhwa aggregator. Broad romance + mature-romance coverage (mid-tier suggestive content that the existing hardcore adult sources skip). CDN i1.r2d2storage.com. v0.1.1: Madara theme dropped the __content suffix on result wrappers as of 2026-05; switched search items selector from div.c-tabs-item__content to div.page-item-detail.manga (verified live).",
+      "description": "Madara-themed Korean manhwa aggregator. Broad romance + mature-romance coverage (mid-tier suggestive content that the existing hardcore adult sources skip). CDN i1.r2d2storage.com. v0.1.1: Madara theme dropped the __content suffix on result wrappers as of 2026-05; switched search items selector from div.c-tabs-item__content to div.page-item-detail.manga (verified live). v0.1.2: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it; Rust desktop runtime does — silent mobile breakage). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/hiperdex.yaml",
       "icon_url": "",
-      "sha256": "792a0248499da5dfd753c87b68de36bdc46bacb0f7ffd0cb3a229aec3bc52ea6"
+      "sha256": "abe944641bee4bfcafe74493ff9b832916699706bd9aeedf70d5d3385c1588a0"
     },
     {
       "id": "manhuascan",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "ManhuaScan",
       "language": "en",
       "nsfw": "optional",
-      "description": "Chinese manhua / xianxia / cultivation aggregator (Martial Peak, Apotheosis, etc.). Shares CDN with manga18fx. Caveat: search-by-title behaves like browse-by-keyword. v0.1.1: Site moved off Madara theme; chapter rows now use .chbox / .eph-num instead of li.wp-manga-chapter. Items selector switched to div.eph-num a, with a[href*='/chapter-'] fallback.",
+      "description": "Chinese manhua / xianxia / cultivation aggregator (Martial Peak, Apotheosis, etc.). Shares CDN with manga18fx. Caveat: search-by-title behaves like browse-by-keyword. v0.1.1: Site moved off Madara theme; chapter rows now use .chbox / .eph-num instead of li.wp-manga-chapter. Items selector switched to div.eph-num a, with a[href*='/chapter-'] fallback. v0.1.2: chapter_list id AND number no longer rely on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhuascan.yaml",
       "icon_url": "",
-      "sha256": "ff3a9d1929a570b43a0279a2d0b757a1cf1089354c4199c9587d55950d6136e2"
+      "sha256": "6a297fac79c4a616603f96e660366fc7787afe3f6bd79abcf390d5d7b559f34e"
     },
     {
       "id": "hentaifox",
@@ -302,42 +302,42 @@
     },
     {
       "id": "tcb_scans",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "TCB Scans",
       "language": "en",
       "nsfw": "optional",
-      "description": "Specialist scanlation group \u2014 weekly One Piece releases (complete archive ch 1\u20131182+) plus 18 other Shonen Jump titles (Jujutsu Kaisen, Bleach, Black Clover, Chainsaw Man, Hunter X Hunter, My Hero Academia, Attack on Titan, etc.). No search endpoint; catalog is the static /projects page, fetched per search and filtered client-side by the host's fuzzy scorer. v1.0.1: Dropped the literal 'One Piece' first_title_contains check \u2014 TCB's fuzzy search now returns a localized variant first. min_results guard is enough for the smoke; chapter_list/page_list cover real coverage.",
+      "description": "Specialist scanlation group \u2014 weekly One Piece releases (complete archive ch 1\u20131182+) plus 18 other Shonen Jump titles (Jujutsu Kaisen, Bleach, Black Clover, Chainsaw Man, Hunter X Hunter, My Hero Academia, Attack on Titan, etc.). No search endpoint; catalog is the static /projects page, fetched per search and filtered client-side by the host's fuzzy scorer. v1.0.1: Dropped the literal 'One Piece' first_title_contains check \u2014 TCB's fuzzy search now returns a localized variant first. min_results guard is enough for the smoke; chapter_list/page_list cover real coverage. v1.0.2: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/tcb_scans.yaml",
       "icon_url": "",
-      "sha256": "9c27a331c831c9b5b36bc32f58c8ae97c9429e49d88ef410f1e0edaa9be7a882"
+      "sha256": "14bec892bc807217b0d9bf6b04fd769bfb0ac7f8761fb3533e1d314408afecc3"
     },
     {
       "id": "mangafire",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaFire",
       "language": "en",
       "nsfw": "optional",
-      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected \u2014 fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver. Initial draft (v0.1.0), selectors tagged 'verify' need confirmation on first smoke-test run.",
+      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected with Turnstile (live-confirmed 2026-05) \u2014 fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver; desktop has no Tauri WebView resolver and cannot exercise this source. SPECULATIVE: selectors still need live in-app verification on mobile \u2014 page_list / chapter_list extractors have not been confirmed against rendered MangaFire HTML. v0.1.1: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangafire.yaml",
       "icon_url": "",
-      "sha256": "9039495c15f07afea8b6f782aa999791a9fd765a7c9f3fabc63059a6cc1af3e9"
+      "sha256": "1a58c6e99056c1dcda422e0233b7957ff0ef7ab78ce43b9f54f680366d8f1270"
     },
     {
       "id": "mangatown",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaTown",
       "language": "en",
       "nsfw": "optional",
-      "description": "Long-running English aggregator (MangaHere sibling). Plain HTML, no JS hydration on catalog/search/detail. Direct Dio/reqwest fetch \u2014 no Cloudflare gate. URL shape /manga/<slug>/ for details, /manga/<slug>/c<NNN>/ for reader. Verified completed runs (e.g. Knights of Sidonia c001\u2013c078). Reader page_list tries inline JS array first, falls back to <img src> scrape.",
+      "description": "Long-running English aggregator (MangaHere sibling). Plain HTML, no JS hydration on catalog/search/detail. Direct Dio/reqwest fetch \u2014 no Cloudflare gate. URL shape /manga/<slug>/ for details; chapters at /manga/<slug>/c<NNN>/ or /manga/<slug>/v<NN>/c<NNN>/ for older volume-organized series like Sidonia no Kishi. v0.1.1: corrected detail-page status label regex (literal 'Status(s):' not 'Status:'); rewrote author extractor to capture the linked <a class=\"color_0077\"> text instead of empty whitespace; switched description to og:description meta (no .summary class exists on detail page); chapter_list id pulls href from item.html (Dart mobile runtime doesn't bind item.attrs.href); accepts volume-prefixed chapter URLs (v01/c001-style); tightened search items selector to drop nav/footer noise; smoke fixture switched from knights_of_sidonia (32 chapters, c001 unavailable) to sidonia_no_kishi (complete 78-chapter run, v01/c001 reader works). KNOWN GAP: reader is one-image-per-fetch (no batch endpoint); page_list smoke remains failing until runtime gains a per-page iterator.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangatown.yaml",
       "icon_url": "",
-      "sha256": "ee02a2beaa748bb6f390a5b88cd9df2d4f551ae8637ad7b06792687b84182907"
+      "sha256": "82587a1243fbe818837f3f7d719ee6cbd4b6038be44f152e9aaa6dc47b0c6db1"
     }
   ]
 }

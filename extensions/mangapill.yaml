@@ -1,6 +1,6 @@
 id: mangapill
 name: Mangapill
-version: 1.0.0
+version: 1.0.1
 api_version: 1
 homepage: https://mangapill.com
 image_referer: "https://mangapill.com"
@@ -121,7 +121,11 @@ chapter_list:
   fields:
     id: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
+        // Mobile (Dart) runtime binds only {html, text, base_url} on item —
+        // no .attrs. v1.0.1 pulls the href from item.html.
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/chapters\/([^"\/]+\/[^"\/?#]+)/);
         return m ? m[1] : '';
       })()

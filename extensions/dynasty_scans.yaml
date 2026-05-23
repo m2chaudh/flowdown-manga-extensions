@@ -1,6 +1,6 @@
 id: dynasty_scans
 name: Dynasty Scans
-version: 0.1.0
+version: 0.1.1
 api_version: 1
 homepage: https://dynasty-scans.com
 allowed_domains:
@@ -84,7 +84,12 @@ chapter_list:
   fields:
     id: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
+        // Mobile (Dart) runtime binds only {html, text, base_url} on item —
+        // no .attrs. Pull the href out of item.html instead so this works
+        // on both runtimes.
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/chapters\/([^"\/?#]+)/);
         return m ? m[1] : '';
       })()

@@ -1,6 +1,6 @@
 id: hiperdex
 name: HiperDex
-version: 0.1.1
+version: 0.1.2
 api_version: 1
 homepage: https://hiperdex.com
 image_referer: "https://hiperdex.com"
@@ -107,7 +107,12 @@ chapter_list:
   fields:
     id: |
       (function(){
-        const href = (item.attrs && item.attrs.href) || '';
+        // Mobile (Dart) runtime binds only {html, text, base_url} on item —
+        // no .attrs. v0.1.2 pulls the href from item.html so this works
+        // on both runtimes.
+        const html = item.html || '';
+        const h = html.match(/href="([^"]+)"/);
+        const href = h ? h[1] : '';
         const m = href.match(/\/manga\/[^"\/]+\/([^"\/?#]+)\/?/);
         return m ? m[1] : '';
       })()
