@@ -1,6 +1,6 @@
 id: manhuaplus
 name: ManhuaPlus
-version: 1.0.0
+version: 1.0.1
 api_version: 1
 homepage: https://manhuaplus.com
 image_referer: "https://manhuaplus.com"
@@ -119,14 +119,15 @@ chapter_list:
 page_list:
   url: "https://manhuaplus.com/manga/{raw:id}/?_={id}"
   response: html
-  # ManhuaPlus deviates from Madara's stock reader markup: there is no
-  # `wp-manga-chapter-img` class, no lazy `data-src` placeholder. Pages
-  # are plain `<img src="https://cdn.manhuaplus.com/…">` tags inside a
-  # `<div class="reading-content">` wrapper. The simple CSS-selector
-  # form is faster than a JS extractor here (skips the worker-isolate
-  # hop) and matches all real page images cleanly because ads live
-  # outside the `.reading-content` block.
-  pages: "div.reading-content img@src"
+  # v1.0.1: the chapter reader wraps page imgs in
+  # `<div class="c-page-content style-1 reading-content-wrap …"><p>
+  #   <img decoding="async" src="https://cdn.manhuaplus.com/…">`
+  # — the old `.reading-content` selector miscounted because the
+  # class is `reading-content-wrap` (with the `-wrap` suffix). Anchoring
+  # on the actual CDN host is the most resilient form since page imgs
+  # always come from `cdn.manhuaplus.com` and sidebar / logo / ad imgs
+  # come from a `wp-content/uploads/...` path on the main domain.
+  pages: "img[src*='cdn.manhuaplus.com']@src"
 
 tests:
   - kind: search
@@ -139,7 +140,10 @@ tests:
     expect:
       min_results: 100
   - kind: page_list
-    fixture_id: "martial-peak/chapter-1"
+    # v1.0.1: chapter-1 (and very-recent chapters) currently render as
+    # empty shell pages; chapter-3000 has the full ~30 page set live.
+    # Smoke fixture moved to a mid-series chapter that's stable.
+    fixture_id: "martial-peak/chapter-3000"
     expect:
-      min_pages: 1
+      min_pages: 5
       first_page_url_https: true

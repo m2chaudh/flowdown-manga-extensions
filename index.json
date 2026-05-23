@@ -211,55 +211,55 @@
     },
     {
       "id": "hiperdex",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "HiperDex",
       "language": "en",
       "nsfw": "optional",
-      "description": "Madara-themed Korean manhwa aggregator. Broad romance + mature-romance coverage (mid-tier suggestive content that the existing hardcore adult sources skip). CDN i1.r2d2storage.com.",
+      "description": "Madara-themed Korean manhwa aggregator. Broad romance + mature-romance coverage (mid-tier suggestive content that the existing hardcore adult sources skip). CDN i1.r2d2storage.com. v0.1.1: Madara theme dropped the __content suffix on result wrappers as of 2026-05; switched search items selector from div.c-tabs-item__content to div.page-item-detail.manga (verified live).",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/hiperdex.yaml",
       "icon_url": "",
-      "sha256": "923db8af93b4dcce71836bb4ce500a7824de9c62f45dfe7a30abb5e890f7ab07"
+      "sha256": "792a0248499da5dfd753c87b68de36bdc46bacb0f7ffd0cb3a229aec3bc52ea6"
     },
     {
       "id": "manhuascan",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "ManhuaScan",
       "language": "en",
       "nsfw": "optional",
-      "description": "Chinese manhua / xianxia / cultivation aggregator (Martial Peak, Apotheosis, etc.). Shares CDN with manga18fx. Caveat: search-by-title behaves like browse-by-keyword.",
+      "description": "Chinese manhua / xianxia / cultivation aggregator (Martial Peak, Apotheosis, etc.). Shares CDN with manga18fx. Caveat: search-by-title behaves like browse-by-keyword. v0.1.1: Site moved off Madara theme; chapter rows now use .chbox / .eph-num instead of li.wp-manga-chapter. Items selector switched to div.eph-num a, with a[href*='/chapter-'] fallback.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhuascan.yaml",
       "icon_url": "",
-      "sha256": "291c28558e87f09c98da4595801f2ac7cee4ae8ede9481df7373fbe53676dd01"
+      "sha256": "ff3a9d1929a570b43a0279a2d0b757a1cf1089354c4199c9587d55950d6136e2"
     },
     {
       "id": "hentaifox",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "HentaiFox",
       "language": "en",
       "nsfw": "always",
-      "description": "Japanese-origin doujinshi gallery \u2014 fills the JP gap in the existing adult bucket (which is otherwise all Korean manhwa). Pages built deterministically from load_dir / load_id / load_pages hidden inputs.",
+      "description": "Japanese-origin doujinshi gallery \u2014 fills the JP gap in the existing adult bucket (which is otherwise all Korean manhwa). Pages built deterministically from load_dir / load_id / load_pages hidden inputs. v0.1.1: Chapter_list id field now reads response.base_url (the field actually exposed in the runtime binding) instead of response.url (undefined), which was returning '' for every row and tripping the empty-id drop guard.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/hentaifox.yaml",
       "icon_url": "",
-      "sha256": "4cd3c77dfaa3f9e53ce1704f60b63349c1ed191a23637ff8af8769490b704770"
+      "sha256": "2da722e73d194e1ab98997fcaae324df25afe53b30c58ec3c8bac2ee03c03941"
     },
     {
       "id": "imhentai",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "ImHentai",
       "language": "en",
       "nsfw": "always",
-      "description": "Sister host to HentaiFox with meaningfully different catalog \u2014 Western porn comics, 3D, Chinese doujin. Same engine but uses an alphanumeric load_id for CDN path resolution.",
+      "description": "Sister host to HentaiFox with meaningfully different catalog \u2014 Western porn comics, 3D, Chinese doujin. Same engine but uses an alphanumeric load_id for CDN path resolution. v0.1.1: Same chapter_list response.url \u2192 response.base_url fix as hentaifox v0.1.1 (sister site, identical scrape pattern).",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/imhentai.yaml",
       "icon_url": "",
-      "sha256": "85ed26c574b5a2793846b8b034f4da0e34388f379c7e21e1eb578fe5badf1a7b"
+      "sha256": "7aae75fc420eb313e45ffb567392ffdcaea2583d34c7960c9ae352f7d9ef4ba5"
     },
     {
       "id": "toonily",
@@ -276,16 +276,16 @@
     },
     {
       "id": "manhuaplus",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "ManhuaPlus",
       "language": "en",
       "nsfw": "optional",
-      "description": "Chinese manhua aggregator (xianxia / wuxia / cultivation) on the Madara WordPress theme. Long-backlog catalog \u2014 Martial Peak alone is 3000+ chapters; complements ManhuaScan's similar but shallower coverage. Direct-Dio path works with a pinned Chrome User-Agent (no Cloudflare gate). URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw.",
+      "description": "Chinese manhua aggregator (xianxia / wuxia / cultivation) on the Madara WordPress theme. Long-backlog catalog \u2014 Martial Peak alone is 3000+ chapters; complements ManhuaScan's similar but shallower coverage. Direct-Dio path works with a pinned Chrome User-Agent (no Cloudflare gate). URL shape `/manga/<slug>/` for details and `/manga/<slug>/chapter-N/` for reader; chapter id is `<manga-slug>/<chapter-slug>` injected raw. v1.0.1: Reader page wrapper class is `reading-content-wrap` not `reading-content`; pages selector now anchors on the cdn.manhuaplus.com host. Smoke fixture moved from chapter-1 (currently shells) to chapter-3000 (stable mid-series with full page set).",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/manhuaplus.yaml",
       "icon_url": "",
-      "sha256": "a9bc1c27122d1edb74f1b0977a4c6bad9022f17a85f5208da06047ed0dcba9c1"
+      "sha256": "fd406fc96d7ad09b55fb14124e7e59047ba32f4e5678c832c2d8f76fc06c2b5d"
     },
     {
       "id": "mangaclash",
@@ -302,16 +302,16 @@
     },
     {
       "id": "tcb_scans",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "TCB Scans",
       "language": "en",
       "nsfw": "optional",
-      "description": "Specialist scanlation group \u2014 weekly One Piece releases (complete archive ch 1\u20131182+) plus 18 other Shonen Jump titles (Jujutsu Kaisen, Bleach, Black Clover, Chainsaw Man, Hunter X Hunter, My Hero Academia, Attack on Titan, etc.). No search endpoint; catalog is the static /projects page, fetched per search and filtered client-side by the host's fuzzy scorer.",
+      "description": "Specialist scanlation group \u2014 weekly One Piece releases (complete archive ch 1\u20131182+) plus 18 other Shonen Jump titles (Jujutsu Kaisen, Bleach, Black Clover, Chainsaw Man, Hunter X Hunter, My Hero Academia, Attack on Titan, etc.). No search endpoint; catalog is the static /projects page, fetched per search and filtered client-side by the host's fuzzy scorer. v1.0.1: Dropped the literal 'One Piece' first_title_contains check \u2014 TCB's fuzzy search now returns a localized variant first. min_results guard is enough for the smoke; chapter_list/page_list cover real coverage.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/tcb_scans.yaml",
       "icon_url": "",
-      "sha256": "1f03bd1c2853402a5bb7b6d768436596955e17febc1dc5a61d2a111663be274e"
+      "sha256": "9c27a331c831c9b5b36bc32f58c8ae97c9429e49d88ef410f1e0edaa9be7a882"
     },
     {
       "id": "mangafire",

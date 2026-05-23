@@ -1,6 +1,6 @@
 id: manhuascan
 name: ManhuaScan
-version: 0.1.0
+version: 0.1.1
 api_version: 1
 homepage: https://manhuascan.us
 image_referer: "https://manhuascan.us"
@@ -82,7 +82,14 @@ manga_details:
 chapter_list:
   url: "https://manhuascan.us/manga/{id}"
   response: html
-  items: "li.wp-manga-chapter a, ul.chapter-list a[href*='/chapter-']"
+  # As of v0.1.1: ManhuaScan moved off the Madara theme and ships
+  # chapter rows as `<div class="chbox"><div class="eph-num"><a
+  # href=".../chapter-N">...</a></div></div>`. The old `li.wp-manga-
+  # chapter` selector matched zero rows and aborted install with
+  # "got 0 chapters, expected at least 50". The new selector accepts
+  # the .eph-num wrapper as the primary path and falls back to any
+  # anchor whose href contains `/chapter-` for layout resilience.
+  items: "div.eph-num a, a[href*='/chapter-']"
   fields:
     # Emit the compound id "<manga-slug>/<chapter-slug>" so page_list can
     # reconstruct the full URL with a single {raw:id} substitution.

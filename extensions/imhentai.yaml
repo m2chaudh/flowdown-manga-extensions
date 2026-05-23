@@ -1,6 +1,6 @@
 id: imhentai
 name: ImHentai
-version: 0.1.0
+version: 0.1.1
 api_version: 1
 homepage: https://imhentai.xxx
 image_referer: "https://imhentai.xxx"
@@ -100,7 +100,11 @@ chapter_list:
   fields:
     id: |
       (function(){
-        const url = (response.url || '');
+        // v0.1.1: `response.url` is undefined in the runtime binding;
+        // the field is named `response.base_url`. Was returning '' for
+        // every row → runtime's empty-id guard dropped them → "got 0
+        // chapters".
+        const url = (response.base_url || '');
         const m = url.match(/\/gallery\/(\d+)\//);
         return m ? m[1] : '';
       })()

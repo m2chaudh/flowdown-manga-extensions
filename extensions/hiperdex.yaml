@@ -1,6 +1,6 @@
 id: hiperdex
 name: HiperDex
-version: 0.1.0
+version: 0.1.1
 api_version: 1
 homepage: https://hiperdex.com
 image_referer: "https://hiperdex.com"
@@ -43,7 +43,12 @@ preferences:
 search:
   url: "https://hiperdex.com/?s={query}&post_type=wp-manga"
   response: html
-  items: "div.c-tabs-item__content"
+  # As of v0.1.1: HiperDex's Madara theme dropped the `__content` BEM
+  # suffix on its search-result wrappers; results now sit inside
+  # `<div class="page-item-detail manga">` directly (verified live).
+  # The earlier `div.c-tabs-item__content` selector matched zero items
+  # and aborted bulk install with "got 0 results, expected at least 1".
+  items: "div.page-item-detail.manga"
   fields:
     id: |
       (function(){
