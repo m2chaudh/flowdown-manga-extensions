@@ -312,6 +312,32 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/tcb_scans.yaml",
       "icon_url": "",
       "sha256": "1f03bd1c2853402a5bb7b6d768436596955e17febc1dc5a61d2a111663be274e"
+    },
+    {
+      "id": "mangafire",
+      "version": "0.1.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "MangaFire",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected — fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver. Initial draft (v0.1.0), selectors tagged 'verify' need confirmation on first smoke-test run.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangafire.yaml",
+      "icon_url": "",
+      "sha256": "9039495c15f07afea8b6f782aa999791a9fd765a7c9f3fabc63059a6cc1af3e9"
+    },
+    {
+      "id": "mangatown",
+      "version": "0.1.0",
+      "api_version": 1,
+      "min_app_version": "0.1.0",
+      "name": "MangaTown",
+      "language": "en",
+      "nsfw": "optional",
+      "description": "Long-running English aggregator (MangaHere sibling). Plain HTML, no JS hydration on catalog/search/detail. Direct Dio/reqwest fetch — no Cloudflare gate. URL shape /manga/<slug>/ for details, /manga/<slug>/c<NNN>/ for reader. Verified completed runs (e.g. Knights of Sidonia c001–c078). Reader page_list tries inline JS array first, falls back to <img src> scrape.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangatown.yaml",
+      "icon_url": "",
+      "sha256": "ee02a2beaa748bb6f390a5b88cd9df2d4f551ae8637ad7b06792687b84182907"
     }
   ]
 }

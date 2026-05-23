@@ -1,0 +1,219 @@
+id: mangatown
+name: MangaTown
+version: 0.1.0
+api_version: 1
+homepage: https://www.mangatown.com
+image_referer: "https://www.mangatown.com"
+allowed_domains:
+  - mangatown.com
+  - m.mangatown.com
+  - www.mangatown.com
+  - fmcdn.mangahere.com
+default_language: en
+nsfw: optional
+description: |
+  Long-running English manga aggregator (MangaHere sibling). Older,
+  lighter-fi site with stable HTML — no JS hydration on the catalog
+  / search / detail pages, which keeps scrape selectors simple.
+
+  URL shape: titles at `/manga/<slug>/`, chapters at
+  `/manga/<slug>/c<NNN>/`. We capture the slug raw via {raw:id} so
+  underscores in titles (`knights_of_sidonia`) survive without
+  URL-encoding tricks.
+
+  Covers + page images come from `fmcdn.mangahere.com` and carry a
+  short-lived `?token=…&ttl=…` query string. They aren't hotlink-
+  protected from the main domain, but a `Referer: mangatown.com`
+  header is set anyway via `image_referer` to be safe with the CDN's
+  rate-limiting heuristics.
+
+  Reader pages historically use a JS variable that lists every page
+  URL; the page_list extractor below tries that pattern first, then
+  falls back to scraping `<img>` tags directly. # verify against the
+  live reader HTML for whichever shape is current.
+
+default_headers:
+  User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  Referer: "https://www.mangatown.com/"
+
+preferences:
+  - id: preferred_language
+    type: string
+    default: en
+  - id: include_nsfw
+    type: bool
+    default: false
+
+search:
+  url: "https://www.mangatown.com/search?name={query}"
+  response: html
+  # MangaTown's search results render as a flat <ul> of <li> cards;
+  # the mobile subdomain returns the same structure. Each li wraps a
+  # primary detail-link anchor + an image + author/genre/views meta.
+  items: "ul.manga_pic_list li, ul li"
+  fields:
+    id: |
+      (function(){
+        const html = item.html || '';
+        // Anchor href is /manga/<slug>/  — capture the slug.
+        const m = html.match(/href="\/manga\/([^"\/]+)\/?"/);
+        return m ? m[1] : '';
+      })()
+    title: |
+      (function(){
+        const html = item.html || '';
+        // The card's primary <a> has the title in its alt or text.
+        const m = html.match(/<img[^>]+alt="([^"]+)"/);
+        if (m) return m[1].trim();
+        const m2 = html.match(/<a[^>]+href="\/manga\/[^"]+\/?"[^>]*>([^<]+)<\/a>/);
+        return m2 ? m2[1].trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = item.html || '';
+        // Covers served from fmcdn.mangahere.com with a signed query.
+        const m = html.match(/<img[^>]+\s(?:data-src|src)="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
+        return m ? m[1].trim() : '';
+      })()
+    description: "(null)"
+    authors: |
+      (function(){
+        const html = item.html || '';
+        // Search rows ship "Author(s): X" inline below the title.
+        const m = html.match(/Author\(s\):\s*([^<]+)/i);
+        return m ? m[1].trim() : '';
+      })()
+    status: "('ongoing')"
+
+manga_details:
+  url: "https://www.mangatown.com/manga/{raw:id}/"
+  response: html
+  fields:
+    # Title rendered inside an h1 in the article header.
+    title: "h1.title-top, h1"
+    description: |
+      (function(){
+        const html = response.html || '';
+        // MangaTown puts the synopsis inside a "summary" or
+        // "article_content" block — the exact class is generated;
+        // grab the first prose paragraph after "Summary".
+        const m = html.match(/<span[^>]*class="[^"]*summary[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+        if (m) return m[1].replace(/<[^>]+>/g, '').trim();
+        const m2 = html.match(/Summary[\s\S]{0,40}<p[^>]*>([\s\S]*?)<\/p>/i);
+        return m2 ? m2[1].replace(/<[^>]+>/g, '').trim() : '';
+      })()
+    cover_url: |
+      (function(){
+        const html = response.html || '';
+        // og:image is the easiest reliable cover URL on MangaTown.
+        const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+        return m ? m[1].trim() : '';
+      })()
+    authors: |
+      (function(){
+        const html = response.html || '';
+        const m = html.match(/Author\(s\):\s*([^<\n]+)/i);
+        return m ? m[1].trim() : '';
+      })()
+    status: |
+      (function(){
+        const html = response.html || '';
+        // The status block has a label "Status:" followed by a word.
+        // MangaTown sometimes ships "Ongoin" with a typo — handle both.
+        const m = html.match(/Status:\s*([A-Za-z]+)/i);
+        if (!m) return 'ongoing';
+        const s = m[1].trim().toLowerCase();
+        if (s.startsWith('complet') || s.startsWith('finish') || s.startsWith('end')) return 'completed';
+        if (s.startsWith('hiatus')) return 'hiatus';
+        if (s.startsWith('cancel') || s.startsWith('drop')) return 'cancelled';
+        return 'ongoing';
+      })()
+
+chapter_list:
+  url: "https://www.mangatown.com/manga/{raw:id}/"
+  response: html
+  # Chapter list is a flat <ul.chapter_list > li > a> with the
+  # text "C.123 Date" inside each anchor. # verify selector against
+  # the desktop layout — the mobile subdomain renders identically
+  # but uses a slightly different wrapper class.
+  items: "ul.chapter_list li, .chapter-list li"
+  fields:
+    id: |
+      (function(){
+        const href = (item.attrs && item.attrs.href) || '';
+        // /manga/<slug>/c<NNN>/   — capture the chapter token.
+        const m = href.match(/\/manga\/[^/]+\/(c[\d.]+)\/?/);
+        return m ? m[1] : '';
+      })()
+    number: |
+      (function(){
+        const t = (item.text || '').trim();
+        // MangaTown's anchor text starts with "C.123" or "Ch 122.0".
+        const m = t.match(/(?:C\.?|Ch\.?\s*)([\d.]+)/i);
+        return m ? m[1] : t;
+      })()
+    title: |
+      (function(){
+        const t = (item.text || '').trim();
+        return t;
+      })()
+    published_at: |
+      (function(){
+        const html = item.html || '';
+        // Date format: "Jan 02,2013" (no space after comma).
+        const m = html.match(/(\w{3,9}\s+\d{1,2},\s*\d{4})/);
+        if (!m) return null;
+        const ts = Date.parse(m[1].replace(/,(\d)/, ', $1'));
+        return isFinite(ts) ? Math.floor(ts / 1000) : null;
+      })()
+    scanlator: "(null)"
+
+page_list:
+  # Reader URL: /manga/<slug>/<chapter>/  — chapter token already
+  # carries the c<NNN> prefix from the chapter_list step.
+  url: "https://www.mangatown.com/manga/{raw:parent_id}/{raw:id}/"
+  response: html
+  pages: |
+    (function(){
+      const html = response.html || '';
+      // MangaTown historically inlines a JS array of page URLs as
+      // `var pages = [...]` or `var imgs = [...]`. # verify
+      // Pattern A: explicit array literal.
+      const arr = html.match(/var\s+(?:pages|imgs|imageArray)\s*=\s*(\[[\s\S]*?\])/);
+      if (arr) {
+        try {
+          const parsed = JSON.parse(
+            arr[1].replace(/'/g, '"')
+          );
+          if (Array.isArray(parsed) && parsed.length) return parsed;
+        } catch (_) {}
+      }
+      // Pattern B: each page as <img id="image" src="…"> on a paged
+      // reader (MangaTown's classic mobile layout).
+      const single = html.match(/<img[^>]+id="image"[^>]+src="([^"]+)"/);
+      if (single) return [single[1]];
+      // Pattern C: any reader-image looking <img src>.
+      const out = [];
+      const re = /<img[^>]+src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/ig;
+      let m;
+      while ((m = re.exec(html)) !== null) {
+        if (!/avatar|logo|icon/i.test(m[1])) out.push(m[1]);
+      }
+      return out;
+    })()
+
+tests:
+  - kind: search
+    query: "knights of sidonia"
+    expect:
+      min_results: 1
+      first_title_contains: "Sidonia"
+  - kind: chapter_list
+    fixture_id: "knights_of_sidonia"
+    expect:
+      min_results: 70  # known 78-chapter completed run
+  - kind: page_list
+    fixture_id: "knights_of_sidonia/c001"
+    expect:
+      min_pages: 5
+      first_page_url_https: true
