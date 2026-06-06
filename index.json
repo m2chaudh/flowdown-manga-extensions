@@ -16,7 +16,7 @@
     },
     {
       "id": "comick",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "Comick",
@@ -25,7 +25,7 @@
       "description": "Multi-language scanlation hub. Uses comick.art's plain-JSON API; covers and pages routed through manga-img:// proxy to add the required Referer.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/comick.yaml",
       "icon_url": "",
-      "sha256": "c93313a45e6db3308e78ac000e33d201aa3148bfeddce9165d0e57b8b54d2988"
+      "sha256": "29e80a16cf7bf4342d99791ea6e6d8ad4b99a1f2973a114b288c14132130702e"
     },
     {
       "id": "internet_archive",

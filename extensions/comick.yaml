@@ -1,6 +1,6 @@
 id: comick
 name: Comick
-version: 1.0.0
+version: 1.1.0
 api_version: 1
 homepage: https://comick.io
 image_referer: "https://comick.art"
@@ -67,6 +67,11 @@ manga_details:
 chapter_list:
   url: "https://comick.art/api/comics/{id}/chapter-list?lang={prefs.preferred_language}&limit=99999"
   response: json
+  # comick caps results at 60/page and ignores limit; walk all pages.
+  paginate:
+    page_param: page
+    last_page: "$.pagination.last_page"
+    max_pages: 50
   items: "$.data[*]"
   fields:
     id: |
