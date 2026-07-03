@@ -94,16 +94,16 @@
     },
     {
       "id": "pornhwa18",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "PornHwa18",
       "language": "en",
       "nsfw": "always",
-      "description": "Explicit pornhwa aggregator (pornhwa18.com) built on Qwik SSR \u2014 NOT Madara. All page content is in the server-rendered HTML, so no JS execution is required. URL shape `/comic/<slug>/chapter-N/`; chapter dates are relative (\"1 day ago\") and converted to absolute Unix seconds at scrape time. Entire catalog is 18+. v1.0.1: chapter_list id AND number no longer rely on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
+      "description": "Explicit pornhwa aggregator (pornhwa18.com) built on Qwik SSR \u2014 NOT Madara. All page content is in the server-rendered HTML, so no JS execution is required. URL shape `/comic/<slug>/chapter-N/`; chapter dates are relative (\"1 day ago\") and converted to absolute Unix seconds at scrape time. Entire catalog is 18+. v1.0.1: chapter_list id AND number no longer rely on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead. v1.0.2: page_list now matches BOTH s1.manhwature.com and cdn.manhwature.com/cdn.manhwa18.com/f/files/ hosts (the site serves reader images from either depending on the title/upload era); v1.0.1's s1-only regex returned 0 pages on cdn-hosted titles like 'Old Friend', making them unreadable.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/pornhwa18.yaml",
       "icon_url": "",
-      "sha256": "3e7c0065999747f17103213e98ec445092aefaae2020ad42aa86f09bae238119"
+      "sha256": "285c2a3a3eca1b9cd1d48e9b54e66b336435317b25a79886bfa1a1570bbbbae1"
     },
     {
       "id": "manhwax",
@@ -217,7 +217,7 @@
       "name": "HiperDex",
       "language": "en",
       "nsfw": "optional",
-      "description": "Madara-themed Korean manhwa aggregator. Broad romance + mature-romance coverage (mid-tier suggestive content that the existing hardcore adult sources skip). CDN i1.r2d2storage.com. v0.1.1: Madara theme dropped the __content suffix on result wrappers as of 2026-05; switched search items selector from div.c-tabs-item__content to div.page-item-detail.manga (verified live). v0.1.2: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it; Rust desktop runtime does — silent mobile breakage). Pulls href from item.html instead.",
+      "description": "Madara-themed Korean manhwa aggregator. Broad romance + mature-romance coverage (mid-tier suggestive content that the existing hardcore adult sources skip). CDN i1.r2d2storage.com. v0.1.1: Madara theme dropped the __content suffix on result wrappers as of 2026-05; switched search items selector from div.c-tabs-item__content to div.page-item-detail.manga (verified live). v0.1.2: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it; Rust desktop runtime does \u2014 silent mobile breakage). Pulls href from item.html instead.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/hiperdex.yaml",
       "icon_url": "",
       "sha256": "abe944641bee4bfcafe74493ff9b832916699706bd9aeedf70d5d3385c1588a0"

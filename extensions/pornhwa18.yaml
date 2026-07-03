@@ -1,6 +1,6 @@
 id: pornhwa18
 name: PornHwa18
-version: 1.0.1
+version: 1.0.2
 api_version: 1
 homepage: https://pornhwa18.com
 image_referer: "https://pornhwa18.com"
@@ -23,9 +23,10 @@ description: |
   chapter id is `<manga-slug>/chapter-N` injected raw via {raw:id}
   so the slash survives URL-encoding.
 
-  Pages are served from `s1.manhwature.com` (and covers from
-  `cdn.manhwature.com/resize/…/min.manhwa18.net/…`). Neither CDN
-  enforces Referer (verified empirically). `image_referer` still
+  Pages are served from `s1.manhwature.com` OR
+  `cdn.manhwature.com/cdn.manhwa18.com/f/files/…` (title/era-dependent;
+  covers from `cdn.manhwature.com/resize/…/min.manhwa18.net/…`). Neither
+  CDN enforces Referer (verified empirically). `image_referer` still
   routes through `manga-img://` defensively.
 
 default_headers:
@@ -213,10 +214,15 @@ chapter_list:
       })()
     scanlator: "(null)"
 
-# Page list. Reader at /comic/<slug>/chapter-N/ renders every page
-# as <img data-src="https://s1.manhwature.com/…/chapter-N/…jpg">.
-# Filter to only s1.manhwature.com to exclude the cover thumbnail at
-# the top of the reader (which is on cdn.manhwature.com/resize/…).
+# Page list. Reader at /comic/<slug>/chapter-N/ renders every page as
+# <img data-src="…">. The page CDN is title/era-dependent — two live
+# shapes verified 2026-07:
+#   older uploads: https://s1.manhwature.com/…/chapters/…jpg
+#   newer uploads: https://cdn.manhwature.com/cdn.manhwa18.com/f/files/<date>/…jpg
+# Match BOTH hosts, but anchor the cdn host on the `/cdn.manhwa18.com/f/files/`
+# path so the cover thumbnail (served from cdn.manhwature.com/resize/…) is
+# still excluded. (v1.0.1's s1-only regex returned 0 pages on cdn-hosted
+# titles like "old-friend", so chapters were unreadable — this restores them.)
 #
 # Chapter id encodes "<slug>/chapter-N" — we inject it raw via
 # {raw:id} so the slash isn't percent-encoded. The runtime accepts
@@ -228,7 +234,7 @@ page_list:
     (function(){
       const html = response.html || '';
       const urls = [];
-      const re = /<img[^>]+data-src="(https?:\/\/s1\.manhwature\.com\/[^"]+\.(?:jpg|jpeg|png|webp))"/g;
+      const re = /<img[^>]+data-src="(https?:\/\/(?:s1\.manhwature\.com\/|cdn\.manhwature\.com\/cdn\.manhwa18\.com\/f\/files\/)[^"]+\.(?:jpg|jpeg|png|webp))"/g;
       let m;
       while ((m = re.exec(html)) !== null) {
         urls.push(m[1].trim());
