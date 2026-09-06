@@ -26,21 +26,25 @@ description: >
      fetch can never perform a *fresh* search. `search.method: post` +
      `search.body` (see below) is the fix; Runtime/SearchBlock gained
      that opt-in in this change (default remains GET — zero behavior
-     change for every other manifest).
+     change for every other manifest). Note Dio/dart:io does NOT
+     auto-follow this redirect for a POST the way a browser (or `curl -L`)
+     does — verified live, the bare 302 surfaces as a DioException if
+     nothing chases it — so the runtime performs one manual GET hop to
+     the `Location` it returns, re-checking `allowed_domains` against
+     that hop too before taking it.
 
   2. The chapter-list AJAX (`/e/extend/fy.php`) paginates 0-indexed
      (`page=0` == first 100 rows, omitting `page` entirely also serves
      `page=0`) and returns a hard 100 rows/page with no override param
      (`num=`, `limit=`, `pagesize=`, `count=`, `rows=` all verified
-     no-ops). Runtime's `until_empty` walker fetches page 1 unpaginated
-     then appends literal `page=2,3,4,...` for every following fetch —
-     it never requests `page=1`. Against a 0-indexed API that
-     structurally skips exactly one 100-row chunk (here, roughly
-     chapters 97-196) no matter how `max_pages` is tuned; there is no
-     offset knob on `PaginateSpec` to correct it. Total yield is still
-     comfortably >2000 chapters (verified), so this reference template
-     ships with the gap documented rather than blocking on a broader
-     walker change — see task-4-report.md for the full analysis.
+     no-ops). `PaginateSpec` gained a `first_page` knob for exactly this:
+     `chapter_list.paginate.first_page: 1` below tells the walker its
+     first additional fetch is `page=1` (right after the unpaginated
+     base fetch, which is this site's implicit `page=0`), instead of the
+     1-indexed-API default of jumping straight to `page=2`. Before this
+     fix the walk permanently skipped page=1 (~93 of 2456 chapters,
+     roughly chapters 97-196) no matter how `max_pages` was tuned — see
+     task-4-report.md for the live before/after chapter counts.
 default_headers:
   User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
   Referer: "https://www.wuxiabox.com/"
@@ -48,10 +52,13 @@ default_headers:
 # Verified live 2026-09-06: GET /search.html?searchkey={q} (the brief's
 # original guess) renders the empty search shell — the real search box
 # POSTs to /e/search/index.php with hidden fields show/tempid/tbname
-# plus the typed keyword as `keyboard`, and the server redirects (302,
-# followed automatically by Dio/dart:io for a POST per RFC 7231 §6.4.3)
-# to a cached results page. Broad queries ("mortal journey") tag-match
-# unrelated titles ("Immortal Journey") — the search index appears to be
+# plus the typed keyword as `keyboard`, and the server redirects (302)
+# to a cached results page. Dio/dart:io does NOT auto-follow that 302
+# for a POST (verified live — the bare 302 surfaces as a DioException
+# unless something chases it), so the runtime chases it itself with one
+# manual GET to the response's Location. Broad queries ("mortal journey")
+# tag-match unrelated titles ("Immortal Journey") — the search index
+# appears to be
 # keyword/tag based, not literal full-text — so the reference test below
 # uses "record of a mortal", verified live to surface both RMJI entries.
 search:
@@ -130,6 +137,12 @@ chapter_list:
   paginate:
     page_param: page
     until_empty: true
+    # fy.php is 0-indexed: the base/unpaginated fetch above IS page=0,
+    # so the walk's first additional fetch must be page=1, not the
+    # 1-indexed-API default of page=2 (which would permanently skip
+    # this exact chunk — see the top-level `description` for the
+    # before/after chapter counts this fixed).
+    first_page: 1
     # RMJI has 2456 chapters / 100 per page = 25 pages (0-indexed
     # page=0..24, verified live: page=24 has the trailing 63 rows,
     # page=25 is empty). max_pages is generous headroom past that so
