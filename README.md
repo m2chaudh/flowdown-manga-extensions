@@ -84,6 +84,38 @@ Extensions opting into `needs_browser_session: true` (i.e. sources that hide beh
 
 Reviving CF-gated sources would need either a system-Chrome integration that survives the macOS-bundle launch (see git history of `src-tauri/src/manga/cf_bypass.rs` for prior attempts) or a `flaresolverr`-style sidecar.
 
+## Novel sources (`kind: novel`)
+
+**Shipped (in `index.json`):** `wuxiabox`, `fanmtl`, `royalroad`.
+
+**Committed but not indexed:**
+
+- `libread.yaml` — uses `fetch_strategy: webview_proxied` (its chapter
+  reader 302-redirects to freewebnovel.com, which runs a Cloudflare JS
+  challenge a headless client can't solve). On mobile, the *foreground*
+  manga-reader UI has a `CloudflareResolverMount` that can solve this
+  kind of challenge, but the *background leech* `Runtime` bootstrapped in
+  `lib/main.dart` — the thing that actually downloads novel chapters —
+  deliberately has no `CloudflareResolver` wired into it in v1. That
+  makes every real libread chapter download fail while browse/search
+  keep working, i.e. shipping-broken for a novel source's core job.
+  Excluded from `index.json` for this reason (see the exclusion comment
+  at the top of `extensions/libread.yaml` for the full detail). Re-add
+  once a `CloudflareResolver` is shared into the leech runtime's
+  bootstrap (or an equivalent mount reachable from background
+  downloads) and verified with an on-device leech-through-CF run.
+- `ranobes.yaml` — search works, but every detail and chapter-list page
+  on this network returns an anti-bot interstitial (a fake HTTP 404
+  carrying `.antibot-btn-success` markup) to this template's requests,
+  confirmed live across retries and cookie jars. Detail/chapter
+  selectors are unverified best-effort. Excluded from `index.json`
+  until that wall is worked around.
+
+Both excluded YAMLs are still exercised by the mobile repo's
+`test/features/novels/novel_templates_test.dart` parse-all-templates
+coverage — only their `index.json` membership (installability) is
+withheld, not their schema correctness.
+
 ## Contributing
 
 1. Add `extensions/<id>.yaml` matching the FlowDown extension schema (see `src-tauri/src/manga/extension.rs` in the main repo).

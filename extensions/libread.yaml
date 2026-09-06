@@ -1,3 +1,21 @@
+# EXCLUDED FROM index.json (2026-09-06, task 13 fix-round): this extension
+# uses `fetch_strategy: webview_proxied` for the whole template (see the
+# Cloudflare note below), but the mobile app's background leech Runtime
+# (bootstrapped in flowdown_mobile's lib/main.dart) deliberately ships with
+# NO CloudflareResolver in v1 — that resolver only exists inside the
+# foreground manga-reader UI's CloudflareResolverMount. Browse/search here
+# can still work on-device today because those calls happen to run through
+# a resolver-equipped path, but every actual chapter DOWNLOAD (the thing a
+# leech is for) would hit the CF challenge with no resolver attached and
+# fail 100% of the time — shipping-broken for its one real job. The YAML
+# stays committed (schema-correct, selectors verified live per the notes
+# below) but is intentionally left out of `index.json` so it can't be
+# installed until CF wiring lands: a resolver shared into the leech
+# Runtime's bootstrap in main.dart, or an equivalent CloudflareResolverMount
+# reachable from background downloads. Re-add the index.json entry (and
+# recompute its sha256) once that lands and an on-device leech-through-CF
+# run has been verified end to end. See also `ranobes.yaml`, excluded for
+# the unrelated reason of an anti-bot wall on its detail/chapter pages.
 id: libread
 name: LibRead
 version: 1.0.0
