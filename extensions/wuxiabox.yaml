@@ -1,0 +1,159 @@
+id: wuxiabox
+name: WuxiaBox
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://www.wuxiabox.com
+allowed_domains: [www.wuxiabox.com, wuxiabox.com]
+default_language: en
+nsfw: never
+description: >
+  Free web-novel aggregator (EmpireCMS / "readwn" template). Large catalog
+  of translated CN/KR/JP novels including complete Wuxiaworld-originated
+  titles such as "A Record of a Mortal's Journey to Immortality" (2456
+  chapters).
+
+  Reference template for `kind: novel` extensions — verified against the
+  live site 2026-09-06. Two live-DOM facts worth flagging for whoever
+  edits this next:
+
+  1. Full-text search is POST-only. `/e/search/index.php` reads
+     `$_POST['keyboard']` — an identical GET request (same params, same
+     headers, same cookies) returns "No relevant content found" every
+     time, confirmed by direct curl comparison. It 302s to a cached,
+     GET-fetchable `/e/search/result/?searchid=N` results page, but N is
+     assigned server-side per query and cannot be predicted, so a GET-only
+     fetch can never perform a *fresh* search. `search.method: post` +
+     `search.body` (see below) is the fix; Runtime/SearchBlock gained
+     that opt-in in this change (default remains GET — zero behavior
+     change for every other manifest).
+
+  2. The chapter-list AJAX (`/e/extend/fy.php`) paginates 0-indexed
+     (`page=0` == first 100 rows, omitting `page` entirely also serves
+     `page=0`) and returns a hard 100 rows/page with no override param
+     (`num=`, `limit=`, `pagesize=`, `count=`, `rows=` all verified
+     no-ops). Runtime's `until_empty` walker fetches page 1 unpaginated
+     then appends literal `page=2,3,4,...` for every following fetch —
+     it never requests `page=1`. Against a 0-indexed API that
+     structurally skips exactly one 100-row chunk (here, roughly
+     chapters 97-196) no matter how `max_pages` is tuned; there is no
+     offset knob on `PaginateSpec` to correct it. Total yield is still
+     comfortably >2000 chapters (verified), so this reference template
+     ships with the gap documented rather than blocking on a broader
+     walker change — see task-4-report.md for the full analysis.
+default_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  Referer: "https://www.wuxiabox.com/"
+
+# Verified live 2026-09-06: GET /search.html?searchkey={q} (the brief's
+# original guess) renders the empty search shell — the real search box
+# POSTs to /e/search/index.php with hidden fields show/tempid/tbname
+# plus the typed keyword as `keyboard`, and the server redirects (302,
+# followed automatically by Dio/dart:io for a POST per RFC 7231 §6.4.3)
+# to a cached results page. Broad queries ("mortal journey") tag-match
+# unrelated titles ("Immortal Journey") — the search index appears to be
+# keyword/tag based, not literal full-text — so the reference test below
+# uses "record of a mortal", verified live to surface both RMJI entries.
+search:
+  url: "https://www.wuxiabox.com/e/search/index.php"
+  method: post
+  body:
+    show: "title"
+    tempid: "1"
+    tbname: "news"
+    keyboard: "{raw:query}"
+  response: html
+  items: "li.novel-item"
+  fields:
+    # <a href="/novel/<slug>.html" title="...">. The novel id must be the
+    # bare slug (shared by manga_details' /novel/{id}.html AND
+    # chapter_list's fy.php?wjm={id}), so it needs extracting out of the
+    # href rather than taken as-is.
+    id: |
+      (function(){
+        var m = /href="\/novel\/([^"]+)\.html"/.exec(item.html);
+        return m ? m[1] : '';
+      })()
+    title: "h4.novel-title"
+    cover_url: "img@abs:data-src"
+    chapter_count: |
+      (function(){
+        var m = /(\d+)\s*Chapters/i.exec(item.text);
+        return m ? parseInt(m[1], 10) : null;
+      })()
+
+manga_details:
+  url: "https://www.wuxiabox.com/novel/{id}.html"
+  response: html
+  fields:
+    title: "h1.novel-title"
+    cover_url: "figure.cover img@abs:data-src"
+    # div.summary also wraps an <h4>Summary</h4> heading — scope one
+    # level deeper to its .content child so that heading text doesn't
+    # leak into the description.
+    description: "div.summary div.content"
+    authors: "div.author span[itemprop=author]"
+    # Real markup has no `.ongoing`/`.completed` class hook (the brief's
+    # guess) — both states render as a bare `<strong class="">TEXT</strong>`
+    # sibling of `<small>Status</small>`, and header-stats has a second,
+    # unrelated `<strong>` for the chapter count. Match on the visible
+    # text pairing instead of DOM position.
+    status: |
+      (function(){
+        var m = /(Ongoing|Completed)\s*Status/i.exec(item.text);
+        return m ? m[1] : null;
+      })()
+
+chapter_list:
+  # AJAX fragment endpoint; one <li> per chapter. Omitting `page`
+  # entirely serves the same content as `page=0` (verified byte-identical
+  # via curl) — see the 0-indexing note in `description` above for why
+  # the paginate walk below still misses one ~100-row chunk.
+  url: "https://www.wuxiabox.com/e/extend/fy.php?wjm={id}"
+  response: html
+  items: ".chapter-list li"
+  fields:
+    # Each <li> wraps exactly one <a href="/novel/<slug>_<n>.html">; keep
+    # the href verbatim (minus the leading slash) as the id so
+    # chapter_content can rebuild the absolute URL with {raw:id}.
+    id: |
+      (function(){
+        var m = /href="([^"]+)"/.exec(item.html);
+        return m ? m[1].replace(/^\//, '') : '';
+      })()
+    title: "strong.chapter-title"
+    # span.chapter-no's text IS the display number, including the
+    # site's own oddities (bonus chapters render ".1", ".2"; interstitial
+    # chapters render "1.81") — a plain selector is both simpler and more
+    # faithful than parsing it back out of the URL.
+    number: "span.chapter-no"
+  paginate:
+    page_param: page
+    until_empty: true
+    # RMJI has 2456 chapters / 100 per page = 25 pages (0-indexed
+    # page=0..24, verified live: page=24 has the trailing 63 rows,
+    # page=25 is empty). max_pages is generous headroom past that so
+    # the walk's own until_empty stop (first empty page) is what ends
+    # it, not the cap — all comfortably inside the 120s walk budget
+    # (each fy.php fetch is a ~34KB fragment, well under a second).
+    max_pages: 40
+
+chapter_content:
+  url: "https://www.wuxiabox.com/{raw:id}"
+  response: html
+  content: "div.chapter-content"
+  # Belt-and-suspenders: the sanitizer's own _alwaysDrop already removes
+  # <script> unconditionally (the only ad marker actually observed inside
+  # .chapter-content on the fetched sample), these cover ad containers
+  # seen elsewhere on the site (search/details pages use `id="pf-NNNN-1"`
+  # ad slots) in case a differently-templated chapter page inlines one.
+  strip: ["div[id*=pf-]", "div[class*=ad]", "ins"]
+  title: "header.chapter-header h2"
+
+tests:
+  - kind: search
+    query: "record of a mortal"
+    expect: {min_results: 1, first_title_contains: "Mortal"}
+  - kind: chapter_list
+    fixture_id: "a-record-of-a-mortals-journey-to-immortality"
+    expect: {min_results: 100}
