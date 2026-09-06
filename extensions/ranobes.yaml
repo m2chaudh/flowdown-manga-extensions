@@ -1,0 +1,124 @@
+id: ranobes
+name: Ranobes
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://ranobes.top
+allowed_domains: [ranobes.top, www.ranobes.top]
+default_language: en
+nsfw: optional
+description: >
+  NOT SHIPPED — deliberately left out of index.json. Verified live
+  2026-09-06: ranobes.top's search flow works fine from this network
+  (`POST /index.php?do=search&subaction=search&story={q}` 307-redirects
+  to a clean, curl-fetchable `/search/{q}/` results page — `+`/`%20`
+  both work for multi-word queries, e.g. `/search/mortal+journey/`
+  found "A Record of a Mortal's Journey to Immortality" at
+  `/novels/329592-a-record-of-a-mortals-journey-to-immortality-v812312.html`,
+  item wrapper `article.block.story.shortstory.mod-poster`, title
+  `h2.title a`, cover as a `<figure style="background-image:url(...)">`
+  — NOT an `<img>`, needs a JS regex extractor).
+
+  BUT every novel detail page and chapter-list page returned an
+  anti-bot interstitial (served as a fake HTTP 404 with
+  `.antibot-btn-success` CSS classes baked into the page — the
+  historically-reported DDoS-Guard/anti-bot wall, still live) for
+  every URL tried, including with a matching Referer and a persisted
+  cookie jar across the search->detail hop. Confirmed NOT a dead/moved
+  URL: retried 3x, tried both the "Immortal Realm" spinoff (id
+  1206102) and the original 2456-chapter novel (id 329592), tried the
+  bare `/chapters/{id}/` index directly — all 404 with the identical
+  antibot page. Per this task's "leave out if it won't pass from this
+  network" rule: committing this template (search selectors ARE
+  live-verified and may be useful to whoever revisits this from a
+  network where the detail/chapter pages aren't gated) but NOT adding
+  it to index.json — manga_details/chapter_list/chapter_content below
+  are unverified best-effort guesses from the brief, not confirmed
+  against real markup, and chapter_content's `#arrticle` selector
+  (note the brief's own double-r spelling, presumably a real site typo)
+  was never actually observed.
+
+  If revisiting: the commented `webview_proxied` block below is a
+  starting point IF the anti-bot page turns out to be a JS challenge
+  solvable by a real browser engine (unconfirmed — the interstitial
+  observed here has no visible JS puzzle, just a static "reload/back/home"
+  page, which may mean it's an IP/fingerprint block a WebView on a
+  different network path wouldn't clear either).
+# fetch_strategy: webview_proxied
+# user_agent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"
+# challenge_markers:
+#   ready_selector: "h1.h2"
+default_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  Referer: "https://ranobes.top/"
+
+# Live-verified 2026-09-06 via curl: POST redirects (307) to a clean GET
+# URL. `+`-joined multi-word query, confirmed live to surface RMJI.
+search:
+  url: "https://ranobes.top/search/{query}/"
+  response: html
+  items: "article.block.story.shortstory.mod-poster"
+  fields:
+    id: |
+      (function(){
+        var m = /href="https:\/\/ranobes\.top\/novels\/([^"]+)\.html"/.exec(item.html);
+        return m ? m[1] : '';
+      })()
+    title: "h2.title a"
+    cover_url: |
+      (function(){
+        var m = /background-image:\s*url\(([^)]+)\)/.exec(item.html);
+        return m ? m[1] : null;
+      })()
+    chapter_count: "(null)"
+
+# UNVERIFIED below this line — detail/chapter pages 404'd behind an
+# anti-bot wall for every attempt from this network (see description).
+manga_details:
+  url: "https://ranobes.top/novels/{id}.html"
+  response: html
+  fields:
+    title: "h1"
+    cover_url: "figure.cover img@abs:src"
+    description: "div.summary, div.moredesctext"
+    authors: "span[itemprop=author]"
+    status: |
+      (function(){
+        var m = /(Ongoing|Completed)/i.exec(item.text);
+        return m ? m[1] : null;
+      })()
+
+chapter_list:
+  url: "https://ranobes.top/chapters/{id}/"
+  response: html
+  items: "li"
+  fields:
+    id: |
+      (function(){
+        var m = /href="([^"]+)"/.exec(item.html);
+        return m ? m[1].replace(/^\//, '') : '';
+      })()
+    title: "a"
+    number: |
+      (function(){
+        var m = /(\d+(?:\.\d+)?)/.exec(item.text || '');
+        return m ? m[1] : null;
+      })()
+  paginate:
+    page_param: page
+    until_empty: true
+    max_pages: 40
+
+chapter_content:
+  url: "https://ranobes.top/{raw:id}"
+  response: html
+  # Per the brief's live-observed field name (note the double "r" —
+  # kept verbatim, not a typo introduced here).
+  content: "#arrticle"
+  strip: ["script", "ins", "div[class*=ad]"]
+  title: "h1"
+
+tests:
+  - kind: search
+    query: "mortal journey"
+    expect: {min_results: 1, first_title_contains: "Mortal"}

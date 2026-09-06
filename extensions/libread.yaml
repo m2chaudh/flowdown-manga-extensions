@@ -1,0 +1,157 @@
+id: libread
+name: LibRead
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://libread.com
+allowed_domains: [libread.com, www.libread.com, freewebnovel.com, www.freewebnovel.com]
+default_language: en
+nsfw: never
+description: >
+  Web-novel aggregator mirroring the same catalog family as fanmtl
+  (Wuxiaworld-originated CN/KR/JP translations). Verified live
+  2026-09-06 against libread.com directly (no Cloudflare gate on that
+  host itself — plain curl reaches real markup for search/details/
+  chapter-list).
+
+  Two live-DOM facts that matter for anyone touching this template:
+
+  1. **Chapter reader pages 302-redirect cross-domain to freewebnovel.com**
+     (e.g. `/libread/<slug>/chapter-01` -> `https://freewebnovel.com/novel/<slug>/chapter-1`),
+     verified via direct curl -D-. Both domains (and their bare/`www.`
+     variants) MUST be in `allowed_domains` or the runtime's allowlist
+     guard throws `StateError` on the hop. freewebnovel.com itself DOES
+     run a Cloudflare JS challenge — confirmed live (curl gets HTTP 403
+     "Just a moment..." — the classic CF interstitial, not real content).
+     A plain Dio GET can reach and 302 off of libread.com fine, but the
+     landing page on freewebnovel.com cannot be solved by a headless
+     HTTP client. `fetch_strategy: webview_proxied` is set for the WHOLE
+     extension (the runtime doesn't support per-block strategy) so the
+     real on-device WebView solves the CF challenge on the redirect
+     target. This means search/details/chapter-list ALSO route through
+     the WebView even though libread.com itself doesn't need it — an
+     accepted cost since there's no per-block override.
+  2. **Search is a plain GET, no POST needed** — `/search?searchkey={q}`
+     returns real results directly (verified live), unlike wuxiabox/
+     fanmtl's POST-only search. Runtime's default `method: get` applies;
+     no `search.method`/`search.body` set here.
+
+  Chapter-list pagination is a plain 1-indexed `?page=N` query param —
+  verified live that the base (unparameterized) fetch is byte-identical
+  in content to explicit `?page=1`, and `?page=2` is a genuinely
+  different (next) chunk — so `paginate.first_page` is left at its
+  default (2), unlike wuxiabox/fanmtl's 0-indexed AJAX. The walker's
+  "stop when a page repeats known ids" behavior handles the final
+  partial page cleanly (verified live: requesting one page past the
+  real last page returns byte-identical content to the last page,
+  not an empty one).
+
+  No `challenge_markers.ready_selector` is set: verified live on-device
+  (integration_test/novel_source_probe_libread_test.dart) that
+  freewebnovel.com's CF challenge fully resolves by the time
+  `onPageFinished` fires for the redirect target — only one
+  onPageStarted/onPageFinished pair was observed for that navigation (no
+  second JS-triggered redirect past an interstitial), so plain
+  `document.readyState === 'complete'` alone is a reliable ready signal
+  here. A `meta[property="og:site_name"]` guess was tried first and
+  never matched freewebnovel's real markup (readyState stayed
+  "complete" with the marker unmatched until the resolver's 30s
+  timeout) — removed rather than left in as a silently-dead check.
+fetch_strategy: webview_proxied
+user_agent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"
+default_headers:
+  User-Agent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"
+  Referer: "https://libread.com/"
+
+search:
+  url: "https://libread.com/search?searchkey={query}"
+  response: html
+  items: "div.li-row"
+  fields:
+    id: |
+      (function(){
+        var m = /href="\/libread\/([^"]+)"/.exec(item.html);
+        return m ? m[1] : '';
+      })()
+    title: "h3.tit a"
+    cover_url: "img@abs:src"
+    chapter_count: "(null)"
+
+manga_details:
+  url: "https://libread.com/libread/{id}"
+  response: html
+  fields:
+    title: ".m-desc h1.tit"
+    cover_url: ".m-book1 .pic img@abs:src"
+    description: "div.txt div.inner"
+    authors: |
+      (function(){
+        var m = /glyphicon-user"[^>]*>\s*<\/span>\s*<div class="right">([\s\S]*?)<\/div>/.exec(item.html);
+        if (!m) return null;
+        var names = [];
+        var re = /title="([^"]+)"/g, mm;
+        while ((mm = re.exec(m[1])) !== null) names.push(mm[1]);
+        return names.length ? names.join(', ') : null;
+      })()
+    # Live-verified: the naive "title=Status ... first >text<" scan
+    # matched the WRONG intervening tag (there are several `>` before
+    # the real value) and always returned null. Anchoring on the
+    # unambiguous `/sort/<status>-novel` href classification link
+    # instead — verified live against the real "Completed" badge.
+    status: |
+      (function(){
+        var m = /\/sort\/(completed|ongoing|hiatus)-novel"[^>]*>([A-Za-z]+)<\/a>/i.exec(item.html);
+        return m ? m[2] : null;
+      })()
+
+chapter_list:
+  # Same URL as manga_details for page 1; ?page=N for subsequent pages
+  # (verified live: query-string form works identically to the site's
+  # own path-segment form `/libread/<slug>/N`). Full chapter list lives
+  # in `ul#idData` — verified this is the complete list (not a
+  # "latest 6" teaser, which is a separate `ul.ul-list5` above it).
+  url: "https://libread.com/libread/{id}"
+  response: html
+  items: "ul#idData li"
+  fields:
+    id: |
+      (function(){
+        var m = /href="\/libread\/([^"]+)"/.exec(item.html);
+        return m ? m[1] : '';
+      })()
+    title: "a.con"
+    number: |
+      (function(){
+        var m = /Chapter\s+(\d+(?:\.\d+)?)/i.exec(item.text || '');
+        return m ? m[1] : null;
+      })()
+  paginate:
+    page_param: page
+    until_empty: true
+    max_pages: 70
+
+chapter_content:
+  # id is the FULL "<novel-slug>/chapter-NN" path from chapter_list —
+  # this fetch 302s cross-domain to freewebnovel.com (see top-level
+  # description). {raw:id} because it contains a slash.
+  url: "https://libread.com/libread/{raw:id}"
+  response: html
+  content: "div.txt, #article, div.chapter-content, .content-body"
+  strip: ["script", "ins", "div[class*=ad]"]
+  # No title selector: chapter_content.title is ALWAYS evaluated as a
+  # plain CSS selector by the runtime (never checked against
+  # isJsExpression, unlike `content`), and freewebnovel's real
+  # per-chapter title lives only inline as the content's own first
+  # paragraph ("Chapter 1: The Village by the Forest...") rather than a
+  # separate DOM heading — verified live. The page's only real `<h1>`
+  # is the novel-level breadcrumb title, which would be a misleading
+  # per-chapter value if selected instead. `title` is optional
+  # (nullable), so omitting it is correct here, not a workaround.
+
+tests:
+  - kind: search
+    query: "record of a mortal"
+    expect: {min_results: 1, first_title_contains: "Mortal"}
+  - kind: chapter_list
+    fixture_id: "a-record-of-a-mortals-journey-to-immortality-novel-157212"
+    expect: {min_results: 100}

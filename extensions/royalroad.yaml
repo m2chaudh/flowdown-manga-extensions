@@ -1,0 +1,125 @@
+id: royalroad
+name: Royal Road
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://www.royalroad.com
+allowed_domains: [www.royalroad.com, royalroad.com]
+default_language: en
+nsfw: never
+description: >
+  Original English web-fiction / LitRPG hub (not a translation
+  aggregator like wuxiabox/fanmtl) — plain server-rendered HTML, no
+  Cloudflare gate encountered against this template's verification
+  network (2026-09-06). Fiction URL shape `/fiction/{id}/{slug}`; the
+  SAME page doubles as both the details page and the FULL chapter
+  list (`table#chapters`, one row per chapter, `data-chapters="N"`
+  total) — no pagination needed, unlike wuxiabox/fanmtl/libread.
+
+  Anti-scrape note: RoyalRoad has historically injected near-invisible
+  "Stolen from Royal Road" honeypot paragraphs into chapter content
+  (styled `display:none` / `visibility:hidden` / `font-size:0`) aimed at
+  scrapers that don't render CSS. Not observed in the specific chapters
+  fetched during this template's verification (Mother of Learning,
+  chapters 1-2), but `chapter_sanitizer.dart`'s `_hiddenStyle` regex
+  already strips any element matching those three style patterns
+  unconditionally, regardless of source — this is generic sanitizer
+  behavior, not something this YAML's `strip:` list needs to special-case.
+  The live probe still asserts the extracted text never contains the
+  literal string "Stolen from Royal Road" as a belt-and-suspenders check.
+
+  Status field: a naive `/COMPLETED|ONGOING/i` scan over the whole page
+  false-positives on the site's own nav link text ("Ongoing Fictions")
+  which appears BEFORE the real status badge in DOM order — verified via
+  direct curl inspection. Fixed by requiring the match sit inside a
+  `bg-blue-hoki` badge span (the real status/type badge's class), which
+  the nav link isn't.
+default_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+
+search:
+  url: "https://www.royalroad.com/fictions/search?title={query}"
+  response: html
+  items: "div.fiction-list-item"
+  fields:
+    id: |
+      (function(){
+        var m = /href="\/fiction\/(\d+)\/([^"]+)"/.exec(item.html);
+        return m ? (m[1] + '/' + m[2]) : '';
+      })()
+    title: "h2.fiction-title a"
+    cover_url: "img[data-type=cover]@abs:src"
+    chapter_count: "(null)"
+
+manga_details:
+  # Same URL serves details + the full chapter table — see top-level
+  # description. {raw:id} because id is "fiction/<id>/<slug>" (contains
+  # slashes) — non-raw would %2F-encode them and break the path.
+  url: "https://www.royalroad.com/{raw:id}"
+  response: html
+  fields:
+    title: ".fic-title h1"
+    cover_url: "img[data-type=cover]@abs:src"
+    description: "div.description .hidden-content"
+    authors: ".fic-title a[href^='/profile/']"
+    # See top-level description: scoped to the `bg-blue-hoki` badge
+    # class so the "Ongoing Fictions" nav link (same keyword, earlier in
+    # DOM order) can't false-positive.
+    status: |
+      (function(){
+        var m = /bg-blue-hoki"[^>]*>\s*(COMPLETED|ONGOING|HIATUS|STUB|DROPPED)\s*<\/span>/i.exec(item.html);
+        return m ? m[1] : null;
+      })()
+
+chapter_list:
+  url: "https://www.royalroad.com/{raw:id}"
+  response: html
+  items: "tr.chapter-row"
+  fields:
+    # Full relative path (novel id + /chapter/<chid>/<slug>) kept as one
+    # composite id, same convention as wuxiabox — chapter_content
+    # rebuilds the absolute URL with {raw:id}.
+    id: |
+      (function(){
+        var m = /href="(\/fiction\/[^"]+)"/.exec(item.html);
+        return m ? m[1].replace(/^\//, '') : '';
+      })()
+    # Each row has two <a> tags sharing the same href (chapter-name cell
+    # + relative-date cell) — regex-match the FIRST anchor's inner text
+    # specifically rather than a bare "a" selector, which would be
+    # ambiguous about which of the two it returns.
+    title: |
+      (function(){
+        var m = /<a[^>]*>\s*([^<]+?)\s*<\/a>/.exec(item.html);
+        return m ? m[1].trim() : '';
+      })()
+    number: |
+      (function(){
+        var m = /^(\d+(?:\.\d+)?)/.exec((item.text || '').trim());
+        return m ? m[1] : null;
+      })()
+    # <time unixtime="..."> — a real Unix timestamp is directly present
+    # in the markup, no date-string parsing needed.
+    published_at: |
+      (function(){
+        var m = /unixtime="(\d+)"/.exec(item.html);
+        return m ? parseInt(m[1], 10) : null;
+      })()
+  # No paginate block: the whole chapter table (data-chapters="N") is
+  # server-rendered on the single details-page fetch above — verified
+  # live on Mother of Learning (109 chapters, all present in one fetch).
+
+chapter_content:
+  url: "https://www.royalroad.com/{raw:id}"
+  response: html
+  content: "div.chapter-inner.chapter-content"
+  strip: ["script"]
+  title: "h1.break-word"
+
+tests:
+  - kind: search
+    query: "mother of learning"
+    expect: {min_results: 1, first_title_contains: "Mother"}
+  - kind: chapter_list
+    fixture_id: "fiction/21220/mother-of-learning"
+    expect: {min_results: 100}

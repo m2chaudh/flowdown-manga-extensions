@@ -22,6 +22,7 @@ extensions/<id>.yaml            extension source files
       "version": "1.0.0",                        // semver; bump to trigger auto-update
       "api_version": 1,                          // FlowDown extension-runtime API version
       "min_app_version": "0.1.0",                // optional: minimum FlowDown version
+      "kind": "novel",                           // optional: "manga" (default) | "novel"
       "name": "MangaDex",
       "language": "en",                          // ISO 639-1 or "multi"
       "nsfw": "optional",                        // one of: no | optional | yes
@@ -35,6 +36,47 @@ extensions/<id>.yaml            extension source files
 ```
 
 `sha256` is optional. When present, FlowDown verifies the fetched YAML matches before installing or updating. Empty = skip.
+
+### `kind` field and the single-registry decision (added task 13, 2026-09-06)
+
+Mobile's Novels feature and the pre-existing Manga feature share this one
+`index.json` — mobile's `NovelsSourcesTab` filters to `kind: novel` entries
+client-side (`novelEntries()` in `lib/features/novels/registry/novel_registry.dart`),
+while the Manga Sources screen implicitly wants `kind != 'novel'` (any entry
+omitting `kind`, i.e. every pre-existing manga extension, defaults to
+`'manga'`).
+
+This was a real decision point, not a default: desktop's Rust
+`RegistryEntry` (`src-tauri/src/manga/registry.rs`) derives plain
+`#[derive(Deserialize)]` with **no** `#[serde(deny_unknown_fields)]`
+anywhere in that struct or its parent `RegistryIndex` — confirmed by
+grepping the whole file. serde's default behavior for a struct without
+that attribute is to silently ignore any JSON key it doesn't recognize,
+so adding `"kind": "novel"` to entries in the shared `index.json` cannot
+break desktop's parse: it simply never reads the field (desktop has no
+novel-reading feature yet) and treats those entries exactly like it
+treats every other entry it doesn't specifically use. Verified by reading
+the struct definition directly, not by running desktop's test suite
+(out of scope for the mobile-side task that added this).
+
+Given that, a separate `index-novels.json` would have added a second
+registry client/fetch path (and a second thing to keep in sync) to solve
+a problem that doesn't exist. Novel entries live in this same
+`index.json`, distinguished purely by the additive `kind` field.
+
+`min_app_version` gating caveat: as of this writing, neither
+`lib/features/manga/registry/registry_client.dart` /
+`lib/features/manga/ui/screens/manga_sources_screen.dart` nor
+`lib/features/novels/ui/screens/novels_sources_tab.dart` on the mobile
+side actually **compares** `min_app_version` against the running app's
+version anywhere — the field is parsed into `RegistryEntry.minAppVersion`
+(`lib/features/manga/registry/models.dart`) and then never read again.
+Setting `min_app_version` on an entry today does not hide it from an
+older build; it's forward-looking metadata for whenever that comparison
+gets implemented. Flagging here so nobody assumes the four novel entries
+added in task 13 (`min_app_version: "0.2.9"`, one version past the
+`0.2.8` this repo's mobile app was on when they were added) are actually
+gated from older installs — they are not, yet.
 
 ## Cloudflare-gated sources
 

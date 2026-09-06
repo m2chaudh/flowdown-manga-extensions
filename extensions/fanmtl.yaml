@@ -1,0 +1,121 @@
+id: fanmtl
+name: FanMTL
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://www.fanmtl.com
+allowed_domains: [www.fanmtl.com, fanmtl.com]
+default_language: en
+nsfw: never
+description: >
+  Free web-novel aggregator hosting fan-fiction and original CN/KR/JP
+  translated novels. Verified live 2026-09-06: runs the SAME
+  EmpireCMS/"readwn" engine as wuxiabox.yaml (identical `/e/search/index.php`
+  POST search flow, `li.novel-item` / `h4.novel-title text2row` markup,
+  `/e/extend/fy.php?wjm={id}` 0-indexed chapter-list AJAX, `div.chapter-content`
+  reader) — confirmed byte-for-byte matching selectors via direct curl
+  comparison rather than assumed from the brief. Different catalog than
+  wuxiabox though: this template's test fixture ("Immortality and
+  cultivation: Heaven rewards diligence, and success is inevitable.",
+  id kks39156) does not overlap with wuxiabox's RMJI — fanmtl does not
+  carry that title.
+
+  Live-verified quirk specific to this fixture: the site's own header
+  stat claims "2745 Chapters" (kks39156's highest chapter NUMBER, likely
+  reflecting the source's total including chapters not mirrored here),
+  but the chapter-list AJAX only ever serves ~332 of them before
+  `until_empty` correctly stops (page=3 returns a partial 31-row chunk,
+  page=4 returns zero NEW rows) — confirmed via direct curl across
+  pages 0-5, not a `first_page` walker bug. The `tests:` bound below is
+  set against the walkable total (~332), not the header's 2745.
+
+  Two live-DOM facts inherited verbatim from wuxiabox (see that file for
+  the original verification detail):
+
+  1. Full-text search is POST-only (`/e/search/index.php`, same
+     show/tempid/tbname/keyboard fields), 302s to a cached
+     `/e/search/result/?searchid=N` page. Dio does NOT auto-follow this
+     POST's 302 — the runtime chases it manually with one GET hop,
+     re-checking `allowed_domains` on that hop.
+
+  2. The chapter-list AJAX (`/e/extend/fy.php`) is 0-indexed exactly like
+     wuxiabox's — confirmed live via curl (`?page=1` returns a DIFFERENT
+     chunk than the unparameterized base fetch, not the same one), so
+     `chapter_list.paginate.first_page: 1` is required here too or the
+     walk permanently skips the chunk between the base fetch and page=2.
+default_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  Referer: "https://www.fanmtl.com/"
+
+search:
+  url: "https://www.fanmtl.com/e/search/index.php"
+  method: post
+  body:
+    show: "title"
+    tempid: "1"
+    tbname: "news"
+    keyboard: "{raw:query}"
+  response: html
+  items: "li.novel-item"
+  fields:
+    id: |
+      (function(){
+        var m = /href="\/novel\/([^"]+)\.html"/.exec(item.html);
+        return m ? m[1] : '';
+      })()
+    title: "h4.novel-title"
+    cover_url: "img@abs:data-src"
+    chapter_count: |
+      (function(){
+        var m = /(\d+)\s*Chapters/i.exec(item.text);
+        return m ? parseInt(m[1], 10) : null;
+      })()
+
+manga_details:
+  url: "https://www.fanmtl.com/novel/{id}.html"
+  response: html
+  fields:
+    title: "h1.novel-title"
+    cover_url: "figure.cover img@abs:data-src"
+    description: "div.summary div.content"
+    authors: "div.author span[itemprop=author]"
+    status: |
+      (function(){
+        var m = /(Ongoing|Completed)\s*Status/i.exec(item.text);
+        return m ? m[1] : null;
+      })()
+
+chapter_list:
+  url: "https://www.fanmtl.com/e/extend/fy.php?wjm={id}"
+  response: html
+  items: ".chapter-list li"
+  fields:
+    id: |
+      (function(){
+        var m = /href="([^"]+)"/.exec(item.html);
+        return m ? m[1].replace(/^\//, '') : '';
+      })()
+    title: "strong.chapter-title"
+    number: "span.chapter-no"
+  paginate:
+    page_param: page
+    until_empty: true
+    # Verified live 2026-09-06 (see top-level description): fy.php is
+    # 0-indexed here exactly like wuxiabox's.
+    first_page: 1
+    max_pages: 40
+
+chapter_content:
+  url: "https://www.fanmtl.com/{raw:id}"
+  response: html
+  content: "div.chapter-content"
+  strip: ["div[id*=pf-]", "div[class*=ad]", "ins", "script"]
+  title: "header.chapter-header h2"
+
+tests:
+  - kind: search
+    query: "immortality and cultivation"
+    expect: {min_results: 1, first_title_contains: "Cultivation"}
+  - kind: chapter_list
+    fixture_id: "kks39156"
+    expect: {min_results: 300}

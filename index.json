@@ -338,6 +338,62 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangatown.yaml",
       "icon_url": "",
       "sha256": "82587a1243fbe818837f3f7d719ee6cbd4b6038be44f152e9aaa6dc47b0c6db1"
+    },
+    {
+      "id": "wuxiabox",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.2.9",
+      "kind": "novel",
+      "name": "WuxiaBox",
+      "language": "en",
+      "nsfw": "never",
+      "description": "Free web-novel aggregator (EmpireCMS / \"readwn\" template). Large catalog of translated CN/KR/JP novels including complete Wuxiaworld-originated titles such as \"A Record of a Mortal's Journey to Immortality\" (2456 chapters). Reference template for kind: novel extensions. Full-text search is POST-only (search.method: post); chapter-list AJAX is 0-indexed (paginate.first_page: 1).",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/wuxiabox.yaml",
+      "icon_url": "",
+      "sha256": "b3311b783bfd494547b40ece4c7dfb0d5ba6e511f904425f123310bc5f9ee870"
+    },
+    {
+      "id": "fanmtl",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.2.9",
+      "kind": "novel",
+      "name": "FanMTL",
+      "language": "en",
+      "nsfw": "never",
+      "description": "Free web-novel aggregator hosting fan-fiction and original CN/KR/JP translated novels. Verified live to run the same EmpireCMS/\"readwn\" engine as WuxiaBox (identical POST search flow, 0-indexed chapter-list AJAX) but a different, non-overlapping catalog.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/fanmtl.yaml",
+      "icon_url": "",
+      "sha256": "eec49e99ff5987d31c89347d506eb35bc64b33832a24607934b5347b0a54a093"
+    },
+    {
+      "id": "libread",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.2.9",
+      "kind": "novel",
+      "name": "LibRead",
+      "language": "en",
+      "nsfw": "never",
+      "description": "Web-novel aggregator sharing the Wuxiaworld-originated catalog family. Search is a plain GET (no POST needed). Chapter reader pages 302-redirect cross-domain to freewebnovel.com, which runs a Cloudflare JS challenge — fetch_strategy: webview_proxied so the on-device WebView solves it; both domains are in allowed_domains.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/libread.yaml",
+      "icon_url": "",
+      "sha256": "17d1e2b6673d107eb27b52afa9210300ef106f18e44d2b4d86f8518f9478154d"
+    },
+    {
+      "id": "royalroad",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.2.9",
+      "kind": "novel",
+      "name": "Royal Road",
+      "language": "en",
+      "nsfw": "never",
+      "description": "Original English web-fiction / LitRPG hub. Plain server-rendered HTML, no Cloudflare gate. One page serves both fiction details and the full chapter table (table#chapters) — no pagination needed. The sanitizer's hidden-element strip (display:none / visibility:hidden / font-size:0) generically removes RoyalRoad's historical \"Stolen from Royal Road\" anti-scrape honeypot paragraphs.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/royalroad.yaml",
+      "icon_url": "",
+      "sha256": "061c8c3908c82c8debf651ce232a2242a285f13f68d03abaa0f29194853e4f55"
     }
   ]
 }
