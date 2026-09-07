@@ -1,0 +1,151 @@
+id: wuxiaspot
+name: WuxiaSpot
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://www.wuxiaspot.com
+allowed_domains: [www.wuxiaspot.com, wuxiaspot.com]
+default_language: en
+nsfw: never
+description: >
+  Free web-novel aggregator — a sister site of `wuxiabox` on the SAME
+  EmpireCMS / "readwn" template (identical DOM, identical AJAX endpoints,
+  identical POST-search quirk; see wuxiabox.yaml's description for the
+  full engine writeup). Carries the REAL "Coiling Dragon" (807 chapters,
+  by I_Eat_Tomatoes) plus a handful of unrelated knockoff/fan-fic titles
+  that also match a bare "coiling dragon" search — verified live
+  2026-09-06, e.g. "The Heavens: From the Transcendence of the Coiling
+  Dragon to the Devouring of the Heavens" and two "Coiling Dragon, I
+  am/have ..." fan titles outrank the real novel in the search's own
+  relevance ordering, so callers must disambiguate by title/author/
+  chapter-count rather than trust "first hit" for this query. Catalog
+  otherwise skews toward the same Wuxiaworld-era CN/KR/JP translated
+  backlog as wuxiabox, with some non-overlapping titles between the two
+  mirrors.
+
+  Reference facts carried over 1:1 from wuxiabox (verified independently
+  live against wuxiaspot 2026-09-06):
+
+  1. Full-text search is POST-only (`/e/search/index.php`,
+     `$_POST['keyboard']`) — see wuxiabox.yaml for the GET-returns-empty-
+     shell / 302-to-uncachable-search-id details this dialect works
+     around via `search.method: post` + `search.body`.
+
+  2. The chapter-list AJAX (`/e/extend/fy.php`) paginates 0-indexed,
+     100 rows/page, no override param — `chapter_list.paginate.first_page:
+     1` below is required for the same reason wuxiabox needs it (else the
+     walk permanently skips rows 101-200).
+default_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  Referer: "https://www.wuxiaspot.com/"
+
+# Verified live 2026-09-06 — identical shape to wuxiabox: the visible
+# search box POSTs to /e/search/index.php with hidden fields
+# show/tempid/tbname plus the typed keyword as `keyboard`; Dio/dart:io
+# does not auto-follow the resulting 302 for a POST, so the runtime
+# chases it with one manual GET to the response's Location.
+search:
+  url: "https://www.wuxiaspot.com/e/search/index.php"
+  method: post
+  body:
+    show: "title"
+    tempid: "1"
+    tbname: "news"
+    keyboard: "{raw:query}"
+  response: html
+  items: "li.novel-item"
+  fields:
+    # <a href="/novel/<slug>.html" title="...">. The novel id must be the
+    # bare slug (shared by manga_details' /novel/{id}.html AND
+    # chapter_list's fy.php?wjm={id}), so it needs extracting out of the
+    # href rather than taken as-is.
+    id: |
+      (function(){
+        var m = /href="\/novel\/([^"]+)\.html"/.exec(item.html);
+        return m ? m[1] : '';
+      })()
+    title: "h4.novel-title"
+    cover_url: "img@abs:data-src"
+    chapter_count: |
+      (function(){
+        var m = /(\d+)\s*Chapters/i.exec(item.text);
+        return m ? parseInt(m[1], 10) : null;
+      })()
+
+manga_details:
+  url: "https://www.wuxiaspot.com/novel/{id}.html"
+  response: html
+  fields:
+    title: "h1.novel-title"
+    cover_url: "figure.cover img@abs:data-src"
+    # div.summary also wraps an <h4>Summary</h4> heading — scope one
+    # level deeper to its .content child so that heading text doesn't
+    # leak into the description.
+    description: "div.summary div.content"
+    authors: "div.author span[itemprop=author]"
+    # Same bare `<strong class="">TEXT</strong>` / `<small>Status</small>`
+    # sibling pairing as wuxiabox — no dedicated class hook, and
+    # header-stats has a second, unrelated `<strong>` for the chapter
+    # count, so match on the visible text pairing instead of DOM position.
+    status: |
+      (function(){
+        var m = /(Ongoing|Completed)\s*Status/i.exec(item.text);
+        return m ? m[1] : null;
+      })()
+
+chapter_list:
+  # AJAX fragment endpoint; one <li> per chapter. Omitting `page` entirely
+  # serves the same content as `page=0` — see the 0-indexing note above
+  # for why the paginate walk below needs `first_page: 1`.
+  url: "https://www.wuxiaspot.com/e/extend/fy.php?wjm={id}"
+  response: html
+  items: ".chapter-list li"
+  fields:
+    # Each <li> wraps exactly one <a href="/novel/<slug>_<n>.html">; keep
+    # the href verbatim (minus the leading slash) as the id so
+    # chapter_content can rebuild the absolute URL with {raw:id}.
+    id: |
+      (function(){
+        var m = /href="([^"]+)"/.exec(item.html);
+        return m ? m[1].replace(/^\//, '') : '';
+      })()
+    title: "strong.chapter-title"
+    number: "span.chapter-no"
+  paginate:
+    page_param: page
+    until_empty: true
+    # fy.php is 0-indexed: the base/unpaginated fetch above IS page=0, so
+    # the walk's first additional fetch must be page=1, not the
+    # 1-indexed-API default of page=2 (which would permanently skip rows
+    # 101-200 — same failure mode documented in wuxiabox.yaml).
+    first_page: 1
+    # Coiling Dragon has 807 chapters / 100 per page = 9 pages (0-indexed
+    # page=0..8, verified live). max_pages is generous headroom past
+    # that so the walk's own until_empty stop ends it, not the cap.
+    max_pages: 40
+
+chapter_content:
+  url: "https://www.wuxiaspot.com/{raw:id}"
+  response: html
+  content: "div.chapter-content"
+  # Same ad markers as wuxiabox: the sanitizer's own _alwaysDrop already
+  # removes <script> unconditionally (verified live — chapter 1's content
+  # opens with a `<script src=/d/js/ad/page_01.js>` ad-slot tag), these
+  # cover container variants seen elsewhere on the site.
+  strip: ["div[id*=pf-]", "div[class*=ad]", "ins"]
+  title: "header.chapter-header h2"
+
+tests:
+  - kind: search
+    query: "coiling dragon"
+    # The real "Coiling Dragon" is NOT the top hit for this query (see
+    # description above) but every result's title contains the query
+    # substring, including the top one ("The Heavens: From the
+    # Transcendence of the Coiling Dragon..."), so this only asserts the
+    # search endpoint itself works, not disambiguation — that's on the
+    # caller (and is exactly the class of bug the zero-chapter-add fix
+    # guards against downstream).
+    expect: {min_results: 1, first_title_contains: "Coiling Dragon"}
+  - kind: chapter_list
+    fixture_id: "coiling-dragon"
+    expect: {min_results: 100}

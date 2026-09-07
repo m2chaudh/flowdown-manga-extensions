@@ -1,0 +1,129 @@
+id: novelfire
+name: Novel Fire
+version: 1.0.0
+api_version: 1
+kind: novel
+homepage: https://novelfire.net
+allowed_domains: [novelfire.net]
+default_language: en
+nsfw: never
+description: >
+  Large English web-novel hub (translated CN/KR/JP + original web-fiction),
+  e.g. "Reverend Insanity" (2334 chapters). Plain server-rendered HTML for
+  details/chapter-list/content — no Cloudflare gate, no browser session
+  needed. Verified live 2026-09-06.
+
+  The homepage's own search box IS client-side JS (the results container
+  ships empty in the initial HTML and is filled by a `$.get()` call after
+  the page loads), so this manifest points `search` at the SAME plain-GET
+  JSON endpoint that JS call hits directly: `/ajax/searchLive?keyword=&
+  type=title`, which needs no cookies/tokens and returns `{"data": [...]}`
+  with `slug`/`title`/`total_chapter`/`image` per hit — confirmed via
+  direct curl with no `X-Requested-With` header. Note this endpoint's own
+  relevance ranking can put an unrelated fan-fic ahead of the canonical
+  title for an ambiguous query (e.g. "coiling dragon" → the only hit on
+  this site is "Coiling Dragon: An Unconventional Transcendence", not the
+  real Yun Zhongyue title, which Novel Fire does not host at all).
+
+  Chapter list is a real paginated HTML page (`/book/{id}/chapters?page=N`,
+  1-indexed, ~100 rows/page, `ul.chapter-list li` rows) rather than an AJAX
+  fragment — `paginate.first_page` can stay at its default (2) since the
+  unparameterized/`page=1` fetch already matches this site's page 1
+  byte-for-byte (verified live). An out-of-range page renders the shell
+  page with NO `.chapter-list` element at all, so `until_empty` terminates
+  cleanly with zero extra plumbing.
+default_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  Referer: "https://novelfire.net/"
+
+search:
+  url: "https://novelfire.net/ajax/searchLive?keyword={query}&type=title"
+  response: json
+  items: "$.data[*]"
+  fields:
+    id: "$.slug"
+    title: "$.title"
+    # `image` comes back as a host-relative path with NO leading slash
+    # (e.g. "server-1/reverend-insanity.jpg") — prefix it into an
+    # absolute URL rather than reaching for an `abs:` selector, which
+    # only exists for the HTML dialect.
+    cover_url: "'https://novelfire.net/' + item.image"
+    chapter_count: "$.total_chapter"
+
+manga_details:
+  url: "https://novelfire.net/book/{id}"
+  response: html
+  fields:
+    title: "h1.novel-title"
+    cover_url: "figure.cover img@abs:src"
+    # div.summary also wraps an <h4>Summary</h4> heading — scope one
+    # level deeper to its .content child so that heading text doesn't
+    # leak into the description (same shape as wuxiabox/wuxiaspot).
+    description: "div.summary div.content"
+    # Multi-author titles list a comma-joined run of
+    # `<span itemprop="author">` — the plain-selector dialect only
+    # returns the FIRST match's text, so co-authors/translator credits
+    # past the first are dropped. Acceptable: matches every other
+    # novel-kind manifest's single-`authors`-string field.
+    authors: "div.author span[itemprop=author]"
+    # header-stats has TWO bare `<strong>`s (chapter count, then status)
+    # each paired with a sibling `<small>` label — same shape as
+    # wuxiabox/wuxiaspot, so reuse the text-pairing regex instead of a
+    # DOM-position or class selector (this site DOES additionally carry
+    # a `class="completed"/"ongoing"` hook, but matching the visible
+    # text keeps this manifest robust to that hook changing/vanishing).
+    status: |
+      (function(){
+        var m = /(Ongoing|Completed|Hiatus|Dropped)\s*Status/i.exec(item.text);
+        return m ? m[1] : null;
+      })()
+
+chapter_list:
+  url: "https://novelfire.net/book/{id}/chapters"
+  response: html
+  items: ".chapter-list li"
+  fields:
+    # Each <li> wraps exactly one <a href="/book/<slug>/chapter-<n>">.
+    # Keep the FULL relative path (slug + chapter tail) as the composite
+    # id, minus the leading slash, so chapter_content can rebuild the
+    # absolute URL with a single {raw:id} — same convention as
+    # wuxiabox/royalroad's `id` field.
+    id: |
+      (function(){
+        var m = /href="([^"]+)"/.exec(item.html);
+        return m ? m[1].replace(/^\//, '') : '';
+      })()
+    title: "strong.chapter-title"
+    number: "span.chapter-no"
+  paginate:
+    page_param: page
+    until_empty: true
+    # 1-indexed pagination: the base/unparameterized fetch already IS
+    # page=1 (verified byte-identical to `?page=1` live), so the
+    # walk's first additional fetch should be the 1-indexed-API
+    # default (page=2) — no `first_page` override needed, unlike
+    # wuxiabox/wuxiaspot's 0-indexed AJAX endpoint.
+    # Reverend Insanity is 2334 chapters / ~100 per page = 24 pages;
+    # generous headroom past that so until_empty's own zero-rows stop
+    # ends the walk, not the cap.
+    max_pages: 60
+
+chapter_content:
+  url: "https://novelfire.net/{raw:id}"
+  response: html
+  content: "#content"
+  # Chapter 1 of Reverend Insanity has no ad markup inside `#content`
+  # itself (the site's ad slot is a `.nf-ads` DIV that's a SIBLING
+  # before `#content`, already excluded by the container selector) —
+  # these strips are defensive belt-and-suspenders for chapters/pages
+  # that do inline an ad, matching the other novel manifests' idiom.
+  strip: ["script", "iframe", "ins", "div[class*=ad]"]
+  title: "span.chapter-title"
+
+tests:
+  - kind: search
+    query: "reverend insanity"
+    expect: {min_results: 1, first_title_contains: "Reverend Insanity"}
+  - kind: chapter_list
+    fixture_id: "reverend-insanity"
+    expect: {min_results: 100}

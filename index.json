@@ -380,6 +380,34 @@
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/royalroad.yaml",
       "icon_url": "",
       "sha256": "061c8c3908c82c8debf651ce232a2242a285f13f68d03abaa0f29194853e4f55"
+    },
+    {
+      "id": "wuxiaspot",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.2.9",
+      "kind": "novel",
+      "name": "WuxiaSpot",
+      "language": "en",
+      "nsfw": "never",
+      "description": "Free web-novel aggregator — a sister site of WuxiaBox on the SAME EmpireCMS/\"readwn\" engine (identical POST search flow, 0-indexed chapter-list AJAX). Carries the REAL \"Coiling Dragon\" (807 chapters, I_Eat_Tomatoes) alongside several unrelated knockoff/fan-fic titles that also match a bare \"coiling dragon\" search, plus a mostly non-overlapping Wuxiaworld-era catalog vs. WuxiaBox.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/wuxiaspot.yaml",
+      "icon_url": "",
+      "sha256": "0178649e13e13301be887795ac5528f01cfbda535e1f471fb3546bf5d20a36ae"
+    },
+    {
+      "id": "novelfire",
+      "version": "1.0.0",
+      "api_version": 1,
+      "min_app_version": "0.2.9",
+      "kind": "novel",
+      "name": "Novel Fire",
+      "language": "en",
+      "nsfw": "never",
+      "description": "Large English web-novel hub (translated CN/KR/JP + original web-fiction), e.g. \"Reverend Insanity\" (2334 chapters). Plain server-rendered HTML, no Cloudflare gate. Search uses the site's own plain-GET JSON endpoint (/ajax/searchLive) that its client-side search box calls internally. Chapter list is a real paginated HTML page (1-indexed, ~100 rows/page), not an AJAX fragment.",
+      "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/novelfire.yaml",
+      "icon_url": "",
+      "sha256": "ef5daa11ddc10723d2e851d8fc2a7c20efa18432f331ca88058647381f51bde1"
     }
   ]
 }
