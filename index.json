@@ -369,17 +369,17 @@
     },
     {
       "id": "royalroad",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.2.9",
       "kind": "novel",
       "name": "Royal Road",
       "language": "en",
       "nsfw": "never",
-      "description": "Original English web-fiction / LitRPG hub. Plain server-rendered HTML, no Cloudflare gate. One page serves both fiction details and the full chapter table (table#chapters) — no pagination needed. The sanitizer's hidden-element strip (display:none / visibility:hidden / font-size:0) generically removes RoyalRoad's historical \"Stolen from Royal Road\" anti-scrape honeypot paragraphs.",
+      "description": "Original English web-fiction / LitRPG hub. Plain server-rendered HTML, no Cloudflare gate. One page serves both fiction details and the full chapter table (table#chapters) — no pagination needed. The sanitizer's hidden-element strip (display:none / visibility:hidden / font-size:0) generically removes RoyalRoad's historical \"Stolen from Royal Road\" anti-scrape honeypot paragraphs. v1.0.1 adds live chapter_count extraction to search cards (was always null, causing a spurious \"chapter count unknown\" caution on every hit).",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/royalroad.yaml",
       "icon_url": "",
-      "sha256": "061c8c3908c82c8debf651ce232a2242a285f13f68d03abaa0f29194853e4f55"
+      "sha256": "9c62fa667472746759b91640350f6c42bd2da970d3bcc14f82439abe866752f7"
     },
     {
       "id": "wuxiaspot",
