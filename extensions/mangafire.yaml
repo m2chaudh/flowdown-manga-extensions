@@ -1,6 +1,6 @@
 id: mangafire
 name: MangaFire
-version: 0.1.1
+version: 0.1.2
 api_version: 1
 homepage: https://mangafire.to
 image_referer: "https://mangafire.to"
@@ -144,11 +144,15 @@ chapter_list:
       (function(){
         // Mobile (Dart) runtime binds only {html, text, base_url} on item —
         // no .attrs. Pull the anchor's href from item.html so this works
-        // on both runtimes. /read/<slug>.<short>/<lang>/<chapter-id>.
+        // on both runtimes. Reader path: /read/<slug>.<short>/<lang>/<chapter-id>.
+        // Capture the WHOLE path after /read/ (slug + lang + chapter), not
+        // just the chapter tail — page_list rebuilds the reader URL from
+        // this single id via {raw:id}. The runtime exposes no separate
+        // parent_id binding, so the slug+lang MUST live inside the id.
         const html = item.html || '';
         const h = html.match(/href="([^"]+)"/);
         const href = h ? h[1] : '';
-        const m = href.match(/\/read\/[^/]+\/[a-z]{2}\/([^/?#]+)/);
+        const m = href.match(/\/read\/([^/]+\/[a-z]{2}\/[^/?#]+)/);
         return m ? m[1] : '';
       })()
     number: |
@@ -166,11 +170,12 @@ chapter_list:
     scanlator: "(null)"
 
 page_list:
-  # Reader URL shape: /read/<slug>.<short>/<lang>/<chapter-id>
-  # The slug+short isn't in the chapter id alone; we re-bind it from
-  # the parent manga id. # verify the {raw:id}+{lang}+chapter join
-  # below is the right composition for MangaFire's reader route.
-  url: "https://mangafire.to/read/{raw:parent_id}/en/{raw:id}"
+  # Reader URL shape: /read/<slug>.<short>/<lang>/<chapter-id>. The
+  # chapter_list id field now stores that whole path (slug/lang/chapter),
+  # so a single {raw:id} reproduces the reader route. The runtime binds
+  # NO `parent_id` (it was always substituted empty → /read//en/... →
+  # 404); this is the {raw:id}-only idiom the other 25 manifests use.
+  url: "https://mangafire.to/read/{raw:id}"
   response: html
   pages: |
     (function(){
@@ -201,7 +206,8 @@ tests:
     expect:
       min_results: 60
   - kind: page_list
-    fixture_id: "sidonia-no-kishii.lmm3/chapter-1"  # verify
+    # Full reader path now: <slug>.<short>/<lang>/<chapter-id>.
+    fixture_id: "sidonia-no-kishii.lmm3/en/chapter-1"  # verify
     expect:
       min_pages: 5
       first_page_url_https: true

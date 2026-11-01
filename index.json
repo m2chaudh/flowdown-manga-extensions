@@ -315,16 +315,16 @@
     },
     {
       "id": "mangafire",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaFire",
       "language": "en",
       "nsfw": "optional",
-      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected with Turnstile (live-confirmed 2026-05) \u2014 fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver; desktop has no Tauri WebView resolver and cannot exercise this source. SPECULATIVE: selectors still need live in-app verification on mobile \u2014 page_list / chapter_list extractors have not been confirmed against rendered MangaFire HTML. v0.1.1: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead.",
+      "description": "Modern English manga aggregator. URL shape /manga/<slug>.<short-id> for details, /read/<slug>.<short-id>/<lang>/<chapter> for reader. Cloudflare-protected with Turnstile (live-confirmed 2026-05) \u2014 fetch_strategy: webview_proxied so the mobile runtime routes through CloudflareResolver; desktop has no Tauri WebView resolver and cannot exercise this source. SPECULATIVE: selectors still need live in-app verification on mobile \u2014 page_list / chapter_list extractors have not been confirmed against rendered MangaFire HTML. v0.1.1: chapter_list id no longer relies on item.attrs.href (Dart mobile runtime doesn't bind it). Pulls href from item.html instead. v0.1.2: page_list dropped the unbound {raw:parent_id} template var (always substituted empty \u2192 /read//en/... \u2192 404); the chapter_list id now carries the whole reader path (slug/lang/chapter) so one {raw:id} rebuilds the URL.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangafire.yaml",
       "icon_url": "",
-      "sha256": "1a58c6e99056c1dcda422e0233b7957ff0ef7ab78ce43b9f54f680366d8f1270"
+      "sha256": "44e2529c5e01bff15ca4b374a946c326d09a76c0e4f1250ef3ff2b297b5c9a4f"
     },
     {
       "id": "mangatown",
