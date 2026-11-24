@@ -159,16 +159,16 @@
     },
     {
       "id": "mangaread",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "api_version": 1,
       "min_app_version": "0.1.0",
       "name": "MangaRead",
       "language": "en",
       "nsfw": "optional",
-      "description": "English Madara-themed WordPress aggregator with a large mainstream catalog (Naruto, Boruto, One Piece, Bleach, Vagabond, Slam Dunk, etc.). Reader is plain \u2014 pages live in `wp-manga-chapter-img` src attributes directly (no chapter-protector AES blob). Pages served from `www.mangaread.org` itself under /wp-content/uploads/; no hotlink protection.",
+      "description": "English Madara-themed WordPress aggregator with a large mainstream catalog (Naruto, Boruto, One Piece, Bleach, Vagabond, Slam Dunk, etc.). Reader is plain \u2014 pages live in `wp-manga-chapter-img` src attributes directly (no chapter-protector AES blob). Pages served from `www.mangaread.org` itself under /wp-content/uploads/; the edge rejects a bare-origin Referer, so pages are fetched with a trailing-slash one.",
       "yaml_url": "https://raw.githubusercontent.com/m2chaudh/flowdown-manga-extensions/main/extensions/mangaread.yaml",
       "icon_url": "",
-      "sha256": "62c47620015c6a98af6f60cd1449ea0aad9279736410e540d4779bf24866370b"
+      "sha256": "aab220ff86e1c04276bac951ba8650549b87bfdee674265fc273ef5b12a1dcd7"
     },
     {
       "id": "mangakatana",

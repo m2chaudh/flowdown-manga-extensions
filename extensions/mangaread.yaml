@@ -1,9 +1,13 @@
 id: mangaread
 name: MangaRead
-version: 1.0.0
+version: 1.0.1
 api_version: 1
 homepage: https://www.mangaread.org
-image_referer: "https://www.mangaread.org"
+# Trailing slash is load-bearing: since Nov 2026 the Cloudflare edge answers a
+# Referer of exactly "https://www.mangaread.org" (no slash — never what a
+# browser sends) with a "Read on mangaread.org" banner PNG in place of every
+# page. With the slash, a page URL, or no Referer, the real page comes back.
+image_referer: "https://www.mangaread.org/"
 allowed_domains:
   - www.mangaread.org
   - mangaread.org
@@ -21,8 +25,8 @@ description: |
   `<slug>/chapter-N-<chapter-slug>` injected raw via {raw:id}.
 
   Pages are served from `www.mangaread.org` itself (under /wp-content/
-  uploads). The CDN does NOT enforce Referer (verified empirically —
-  no-Referer GET returns the same bytes as a Referer'd GET).
+  uploads). The edge rejects a bare-origin Referer with a banner image
+  (see image_referer); no-Referer and full-URL Referers both work.
 
 default_headers:
   User-Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
